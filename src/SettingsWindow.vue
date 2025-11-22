@@ -64,6 +64,10 @@ const settings = useSettingsState();
                 <n-switch v-model:value="settings.monitorClipboard" />
               </n-form-item>
 
+              <n-form-item label="OpenAI 兼容输入（/v1/chat/completions）">
+                <n-switch v-model:value="settings.openaiCompatibleInput" />
+              </n-form-item>
+
               <div class="section-title">本地 HTTP 推送示例</div>
               <div class="mono" style="background: #0c1b2e; color: #b3d4ff; padding: 12px; border-radius: 8px;">
                 curl -X POST http://127.0.0.1:{{ settings.serverPort }}/submit \\\n

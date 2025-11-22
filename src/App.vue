@@ -51,6 +51,12 @@ watch(
   { immediate: true }
 );
 
+watch(
+  () => settings.value.openaiCompatibleInput,
+  (enabled) => syncOpenAICompatibleInput(enabled),
+  { immediate: true }
+);
+
 onMounted(async () => {
   try {
     const unlisten = await listen<{ text: string } | string>("incoming_text", async (event) => {
@@ -173,6 +179,15 @@ async function syncClipboardWatch(enabled: boolean) {
     await invoke("set_clipboard_watch", { enabled });
   } catch (error) {
     console.error("Failed to sync clipboard watch state", error);
+  }
+}
+
+async function syncOpenAICompatibleInput(enabled: boolean) {
+  if (!isTauri) return;
+  try {
+    await invoke("set_openai_compatible_input", { enabled });
+  } catch (error) {
+    console.error("Failed to sync OpenAI compatible input state", error);
   }
 }
 

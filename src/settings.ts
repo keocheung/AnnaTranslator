@@ -10,6 +10,7 @@ export type Settings = {
   serverPort: number;
   keepOnTop: boolean;
   monitorClipboard: boolean;
+  openaiCompatibleInput: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -21,7 +22,8 @@ export const defaultSettings: Settings = {
   fontSize: 18,
   serverPort: 17889,
   keepOnTop: true,
-  monitorClipboard: false
+  monitorClipboard: false,
+  openaiCompatibleInput: false
 };
 
 const STORAGE_KEY = "translator-settings";
