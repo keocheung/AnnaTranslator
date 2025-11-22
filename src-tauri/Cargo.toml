@@ -2,8 +2,7 @@
 name = "local-translator"
 version = "0.1.0"
 description = "Galgame translator overlay powered by Tauri 2"
-edition = "2021"
-rust-version = "1.77"
+edition = "2024"
 
 [features]
 default = []

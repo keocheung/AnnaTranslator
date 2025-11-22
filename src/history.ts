@@ -31,7 +31,9 @@ export async function fetchTranslationHistory(): Promise<TranslationHistoryEntry
   }
 }
 
-export async function listenTranslationHistoryUpdates(handler: EventCallback<unknown>): Promise<UnlistenFn | null> {
+export async function listenTranslationHistoryUpdates(
+  handler: EventCallback<unknown>
+): Promise<UnlistenFn | null> {
   if (!isTauri) return null;
 
   try {

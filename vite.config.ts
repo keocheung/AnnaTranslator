@@ -6,12 +6,12 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    host: true
+    host: true,
   },
   envPrefix: ["VITE_", "TAURI_"],
   build: {
     target: ["es2021", "chrome100", "safari15"],
     outDir: "dist",
-    emptyOutDir: true
-  }
+    emptyOutDir: true,
+  },
 });

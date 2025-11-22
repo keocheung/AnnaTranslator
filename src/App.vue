@@ -11,7 +11,7 @@ import {
   NSpace,
   NSwitch,
   NTag,
-  createDiscreteApi
+  createDiscreteApi,
 } from "naive-ui";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -32,12 +32,12 @@ const controller = ref<AbortController | null>(null);
 const appWindow = getCurrentWindow();
 const isTauri =
   typeof window !== "undefined" &&
-  (("__TAURI_METADATA__" in window) || ("__TAURI_IPC__" in window) || ("__TAURI_INTERNALS__" in window));
+  ("__TAURI_METADATA__" in window || "__TAURI_IPC__" in window || "__TAURI_INTERNALS__" in window);
 
 const textStyle = computed(() => ({
   fontFamily: settings.value.fontFamily,
   fontSize: `${settings.value.fontSize}px`,
-  lineHeight: 1.5
+  lineHeight: 1.5,
 }));
 
 watch(
@@ -61,7 +61,8 @@ watch(
 onMounted(async () => {
   try {
     const unlisten = await listen<{ text: string } | string>("incoming_text", async (event) => {
-      const payload = typeof event.payload === "string" ? event.payload : event.payload?.text ?? "";
+      const payload =
+        typeof event.payload === "string" ? event.payload : (event.payload?.text ?? "");
       if (!payload) return;
       originalText.value = payload;
       await translate(payload);
@@ -112,7 +113,7 @@ async function translate(text: string) {
   const client = new OpenAI({
     apiKey: settings.value.apiKey,
     baseURL: settings.value.baseUrl.replace(/\/$/, "") || undefined,
-    dangerouslyAllowBrowser: true
+    dangerouslyAllowBrowser: true,
   });
 
   const abortController = new AbortController();
@@ -128,8 +129,8 @@ async function translate(text: string) {
         stream: true,
         messages: [
           { role: "system", content: settings.value.prompt },
-          { role: "user", content }
-        ]
+          { role: "user", content },
+        ],
       },
       { signal: abortController.signal }
     );
@@ -151,7 +152,7 @@ async function translate(text: string) {
     try {
       await invoke("store_translation", {
         text: content,
-        translation: translatedText.value
+        translation: translatedText.value,
       });
     } catch (error) {
       console.error("Failed to store translation cache:", error);
@@ -247,7 +248,7 @@ async function openSettingsWindow() {
     alwaysOnTop: true,
     resizable: true,
     decorations: true,
-    visible: true
+    visible: true,
   });
 
   settingsWindow.once("tauri://error", (e) => {
@@ -276,7 +277,7 @@ async function openHistoryWindow() {
     alwaysOnTop: true,
     resizable: true,
     decorations: true,
-    visible: true
+    visible: true,
   });
 
   historyWindow.once("tauri://error", (e) => {
@@ -289,7 +290,6 @@ async function persistTranslationHistory(original: string, translation: string) 
   if (!translation.trim()) return;
   await recordTranslationHistory(original, translation);
 }
-
 </script>
 
 <template>
@@ -320,7 +320,13 @@ async function persistTranslationHistory(original: string, translation: string) 
                 </n-button>
               </n-space>
               <div
-                style="padding: 12px 14px; border-radius: 12px; background: #f5f7fb; min-height: 80px; white-space: pre-wrap;"
+                style="
+                  padding: 12px 14px;
+                  border-radius: 12px;
+                  background: #f5f7fb;
+                  min-height: 80px;
+                  white-space: pre-wrap;
+                "
                 :style="textStyle"
               >
                 {{ originalText || "等待本地 HTTP 推送 / 手动输入" }}
@@ -342,7 +348,14 @@ async function persistTranslationHistory(original: string, translation: string) 
             <n-space vertical size="large">
               <div class="section-title">译文</div>
               <div
-                style="padding: 16px; border-radius: 12px; background: #0b1727; color: #e8f0ff; min-height: 120px; white-space: pre-wrap;"
+                style="
+                  padding: 16px;
+                  border-radius: 12px;
+                  background: #0b1727;
+                  color: #e8f0ff;
+                  min-height: 120px;
+                  white-space: pre-wrap;
+                "
                 :style="textStyle"
               >
                 {{ translatedText || (streaming ? "正在翻译..." : "尚未有译文") }}

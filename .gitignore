@@ -3,7 +3,8 @@ dist
 dist-ssr
 .turbo
 .idea
-.vscode
+.vscode/*
+!.vscode/settings.json
 *.log
 *.lock
 *.tmp

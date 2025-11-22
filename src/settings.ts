@@ -20,12 +20,12 @@ export const defaultSettings: Settings = {
   apiKey: "",
   model: "gpt-4o-mini",
   prompt: "你是一个 Galgame 文本翻译助手，请将原文翻译为简洁、流畅的中文对白，保留原有格式与人名。",
-  fontFamily: "\"Noto Sans CJK SC\", \"Noto Sans SC\", sans-serif",
+  fontFamily: '"Noto Sans CJK SC", "Noto Sans SC", sans-serif',
   fontSize: 18,
   serverPort: 17889,
   keepOnTop: true,
   monitorClipboard: false,
-  openaiCompatibleInput: false
+  openaiCompatibleInput: false,
 };
 
 const STORAGE_FILE = "settings.json";

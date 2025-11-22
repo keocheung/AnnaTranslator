@@ -10,14 +10,14 @@ import {
   NLayoutContent,
   NScrollbar,
   NSpace,
-  NTag
+  NTag,
 } from "naive-ui";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   fetchTranslationHistory,
   listenTranslationHistoryUpdates,
-  type TranslationHistoryEntry
+  type TranslationHistoryEntry,
 } from "./history";
 
 const entries = ref<TranslationHistoryEntry[]>([]);
@@ -83,8 +83,8 @@ onBeforeUnmount(() => {
         <n-space vertical size="large">
           <n-card class="card" size="large" :bordered="false">
             <div class="section-title">最近翻译（新 → 旧，自下而上）</div>
-            <n-divider style="margin: 10px 0 14px 0;" />
-            <n-scrollbar ref="scrollbarRef" style="max-height: 70vh;">
+            <n-divider style="margin: 10px 0 14px 0" />
+            <n-scrollbar ref="scrollbarRef" style="max-height: 70vh">
               <div v-if="entries.length" class="history-list">
                 <div v-for="(entry, idx) in entries" :key="idx" class="history-item">
                   <div class="history-meta">

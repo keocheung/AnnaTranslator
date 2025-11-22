@@ -2,7 +2,5 @@
   "identifier": "devtools",
   "description": "Allow toggling devtools in dev builds",
   "windows": ["main"],
-  "permissions": [
-    "core:webview:allow-internal-toggle-devtools"
-  ]
+  "permissions": ["core:webview:allow-internal-toggle-devtools"]
 }
