@@ -2,17 +2,21 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   NButton,
+  NButtonGroup,
   NCard,
   NConfigProvider,
   NGradientText,
+  NIcon,
   NInput,
   NLayout,
   NLayoutContent,
   NSpace,
   NSwitch,
   NTag,
+  NTooltip,
   createDiscreteApi,
 } from "naive-ui";
+import { CloseRound, HistoryRound, SettingsRound } from "@vicons/material";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -302,10 +306,44 @@ async function persistTranslationHistory(original: string, translation: string) 
         <n-tag size="small" type="success" bordered>监听端口 {{ settings.serverPort }}</n-tag>
       </div>
       <div class="title-bar__actions no-drag">
-        <n-button size="tiny" quaternary @click="openHistoryWindow">历史</n-button>
-        <n-button size="tiny" quaternary @click="openSettingsWindow">设置</n-button>
-        <span class="section-title">置顶</span>
-        <n-switch size="small" :value="settings.keepOnTop" @update:value="handleKeepOnTop" />
+        <n-tooltip trigger="hover">
+          <template #trigger>
+            <n-switch :value="settings.keepOnTop" @update:value="handleKeepOnTop" />
+          </template>
+          窗口置顶
+        </n-tooltip>
+        <n-button-group>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-button circle class="main-button" @click="openHistoryWindow">
+                <n-icon>
+                  <HistoryRound />
+                </n-icon>
+              </n-button>
+            </template>
+            历史记录 (H)
+          </n-tooltip>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-button circle class="main-button" @click="openSettingsWindow">
+                <n-icon>
+                  <SettingsRound />
+                </n-icon>
+              </n-button>
+            </template>
+            设置
+          </n-tooltip>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-button circle class="main-button" @click="appWindow.close()">
+                <n-icon>
+                  <CloseRound />
+                </n-icon>
+              </n-button>
+            </template>
+            退出
+          </n-tooltip>
+        </n-button-group>
       </div>
     </div>
     <n-layout content-style="padding: 12px 18px 28px 18px;">
@@ -373,3 +411,8 @@ async function persistTranslationHistory(original: string, translation: string) 
     </n-layout>
   </n-config-provider>
 </template>
+<style>
+.main-button {
+  font-size: 20px;
+}
+</style>
