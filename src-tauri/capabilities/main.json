@@ -1,0 +1,10 @@
+{
+  "identifier": "main",
+  "description": "Base permissions for the main window (events and window controls).",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:event:allow-listen",
+    "core:window:allow-set-always-on-top"
+  ]
+}

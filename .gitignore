@@ -1,0 +1,19 @@
+node_modules
+dist
+dist-ssr
+.turbo
+.idea
+.vscode
+*.log
+*.lock
+*.tmp
+.DS_Store
+
+# Bun
+.bun
+
+# Rust / Tauri
+src-tauri/target
+src-tauri/gen
+src-tauri/.fingerprint
+src-tauri/Cargo.lock

@@ -1,0 +1,27 @@
+{
+  "name": "local-translator",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "packageManager": "bun@1.1.29",
+  "scripts": {
+    "dev": "bun --bun vite",
+    "build": "bun --bun vite build",
+    "preview": "bun --bun vite preview",
+    "lint": "bun --bun tsc --noEmit",
+    "tauri": "bunx tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "openai": "^4.77.4",
+    "naive-ui": "^2.38.3",
+    "vue": "^3.5.12"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@vitejs/plugin-vue": "^5.1.2",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8",
+    "vue-tsc": "^2.1.6"
+  }
+}
