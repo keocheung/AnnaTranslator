@@ -3,7 +3,6 @@ import {
   NCard,
   NCode,
   NConfigProvider,
-  NFlex,
   NForm,
   NFormItem,
   NInput,
@@ -11,10 +10,13 @@ import {
   NSwitch,
   NTabs,
   NTabPane,
+  darkTheme,
+  useOsTheme,
 } from "naive-ui";
 import { useSettingsState } from "./settings";
 import hljs from 'highlight.js/lib/core';
 import bash from 'highlight.js/lib/languages/bash';
+import { computed } from "vue";
 
 const settings = useSettingsState();
 
@@ -22,13 +24,14 @@ const submitCommand = `curl -X POST http://127.0.0.1:${settings.value.apiKey}/su
               -H 'Content-Type: text/plain' \\
               --data-raw '<待翻译文本>'`;
 
+const theme = computed(() => useOsTheme().value === 'dark' ? darkTheme : null);
 hljs.registerLanguage('bash', bash);
 </script>
 
 <template>
-  <n-config-provider :hljs="hljs">
-    <n-flex content-style="padding: 12px 18px 28px 18px;">
-      <n-card class="card" :bordered="false">
+  <n-config-provider :theme="theme" :hljs="hljs">
+    <div class="settings-wrapper">
+      <n-card class="card settings-card" :bordered="false">
         <n-tabs type="line" placement="left">
           <n-tab-pane name="translation" label="翻译">
             <n-form label-placement="top" size="medium">
@@ -74,12 +77,16 @@ hljs.registerLanguage('bash', bash);
           </n-tab-pane>
         </n-tabs>
       </n-card>
-    </n-flex>
+    </div>
   </n-config-provider>
 </template>
 <style>
 body {
   text-autospace: normal;
+}
+.settings-wrapper {
+  min-height: 100vh;
+  display: flex;
 }
 .code {
   font-family: monospace;
