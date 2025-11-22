@@ -9,6 +9,7 @@ export type Settings = {
   fontSize: number;
   serverPort: number;
   keepOnTop: boolean;
+  monitorClipboard: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -19,7 +20,8 @@ export const defaultSettings: Settings = {
   fontFamily: "\"LXGW WenKai\", \"Noto Sans SC\", \"Space Grotesk\", sans-serif",
   fontSize: 18,
   serverPort: 17889,
-  keepOnTop: true
+  keepOnTop: true,
+  monitorClipboard: false
 };
 
 const STORAGE_KEY = "translator-settings";

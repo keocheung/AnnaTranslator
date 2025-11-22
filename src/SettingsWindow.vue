@@ -9,7 +9,8 @@ import {
   NInputNumber,
   NLayout,
   NLayoutContent,
-  NSpace
+  NSpace,
+  NSwitch
 } from "naive-ui";
 import { useSettingsState } from "./settings";
 
@@ -58,6 +59,10 @@ const settings = useSettingsState();
               </n-space>
 
               <n-divider />
+
+              <n-form-item label="监听剪贴板并自动翻译">
+                <n-switch v-model:value="settings.monitorClipboard" />
+              </n-form-item>
 
               <div class="section-title">本地 HTTP 推送示例</div>
               <div class="mono" style="background: #0c1b2e; color: #b3d4ff; padding: 12px; border-radius: 8px;">

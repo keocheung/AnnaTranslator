@@ -1,13 +1,20 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use anyhow::Result;
+use arboard::Clipboard;
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
 use serde::Deserialize;
 use std::net::SocketAddr;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use serde_json::json;
+use tokio::task::spawn_blocking;
+use tokio::time::sleep;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 const DEFAULT_PORT: u16 = 17889;
+static CLIPBOARD_ENABLED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Deserialize, Debug)]
 struct IncomingText {
@@ -53,8 +60,53 @@ fn read_port_from_env() -> u16 {
         .unwrap_or(DEFAULT_PORT)
 }
 
+async fn poll_clipboard_text() -> Result<Option<String>> {
+    let text = spawn_blocking(|| -> Result<Option<String>> {
+        let mut clipboard = Clipboard::new()?;
+        Ok(clipboard.get_text().ok())
+    })
+    .await
+    .map_err(|err| anyhow::anyhow!("clipboard task join error: {err}"))??;
+
+    Ok(text.map(|t| t.trim().to_string()))
+}
+
+fn start_clipboard_watcher(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let mut last = String::new();
+
+        loop {
+            if !CLIPBOARD_ENABLED.load(Ordering::Relaxed) {
+                sleep(Duration::from_millis(500)).await;
+                continue;
+            }
+
+            match poll_clipboard_text().await {
+                Ok(Some(text)) if !text.is_empty() && text != last => {
+                    last = text.clone();
+                    if let Err(err) = app.emit("incoming_text", text) {
+                        eprintln!("[tauri] failed to emit clipboard incoming_text: {err}");
+                    }
+                }
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!("[tauri] clipboard poll failed: {err}");
+                }
+            }
+
+            sleep(Duration::from_millis(1500)).await;
+        }
+    });
+}
+
+#[tauri::command]
+fn set_clipboard_watch(enabled: bool) {
+    CLIPBOARD_ENABLED.store(enabled, Ordering::Relaxed);
+}
+
 fn main() -> Result<()> {
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![set_clipboard_watch])
         .setup(|app| {
             // Clone to detach lifetime from setup closure.
             let app_handle = app.handle().clone();
@@ -64,6 +116,8 @@ fn main() -> Result<()> {
                     eprintln!("[tauri] failed to start HTTP listener: {err}");
                 }
             });
+
+            start_clipboard_watcher(app.handle().clone());
             Ok(())
         })
         .run(tauri::generate_context!())?;

@@ -13,6 +13,7 @@ import {
   NTag,
   createDiscreteApi
 } from "naive-ui";
+import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -41,6 +42,12 @@ const textStyle = computed(() => ({
 watch(
   () => settings.value.keepOnTop,
   (alwaysOnTop) => applyAlwaysOnTop(alwaysOnTop),
+  { immediate: true }
+);
+
+watch(
+  () => settings.value.monitorClipboard,
+  (enabled) => syncClipboardWatch(enabled),
   { immediate: true }
 );
 
@@ -157,6 +164,15 @@ async function startDragging(event: MouseEvent) {
     await appWindow.startDragging();
   } catch (error) {
     console.error("Drag failed", error);
+  }
+}
+
+async function syncClipboardWatch(enabled: boolean) {
+  if (!isTauri) return;
+  try {
+    await invoke("set_clipboard_watch", { enabled });
+  } catch (error) {
+    console.error("Failed to sync clipboard watch state", error);
   }
 }
 
