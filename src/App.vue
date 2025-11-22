@@ -185,42 +185,35 @@ async function copyTranslation() {
   }
 }
 
-async function openDevtools() {
-  if (!isTauri) {
-    message.info("当前在浏览器环境，请按 F12 打开 DevTools");
-    return;
-  }
+async function startDragging(event: MouseEvent) {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest(".no-drag")) return;
   try {
-    await appWindow.openDevtools();
+    await appWindow.startDragging();
   } catch (error) {
-    message.error("无法打开 DevTools");
-    console.error(error);
+    console.error("Drag failed", error);
   }
 }
+
 </script>
 
 <template>
   <n-config-provider>
-    <n-layout content-style="padding: 18px 18px 28px 18px;">
+    <div class="title-bar" data-tauri-drag-region @mousedown="startDragging">
+      <div class="title-bar__left drag-region" data-tauri-drag-region>
+        <n-gradient-text class="app-title" gradient="linear-gradient(120deg, #4c83ff, #4fd1c5)">
+          Local Translator
+        </n-gradient-text>
+        <n-tag size="small" type="success" bordered>监听端口 {{ settings.serverPort }}</n-tag>
+      </div>
+      <div class="title-bar__actions no-drag">
+        <span class="section-title">置顶</span>
+        <n-switch size="small" :value="settings.keepOnTop" @update:value="toggleOnTop" />
+      </div>
+    </div>
+    <n-layout content-style="padding: 12px 18px 28px 18px;">
       <n-layout-content>
         <n-space vertical size="large">
-          <n-space align="center" justify="space-between">
-            <div>
-              <div class="section-title">Gal 翻译小窗</div>
-              <n-gradient-text size="24" gradient="linear-gradient(120deg, #0f5af0 0%, #9d35ff 90%)">
-                Local Translator (Tauri 2)
-              </n-gradient-text>
-            </div>
-            <n-space>
-              <n-tag type="success" bordered>监听端口 {{ settings.serverPort }}</n-tag>
-              <n-space align="center">
-                <span class="section-title">置顶</span>
-                <n-switch :value="settings.keepOnTop" @update:value="toggleOnTop" />
-              </n-space>
-              <n-button size="tiny" tertiary @click="openDevtools">DevTools</n-button>
-            </n-space>
-          </n-space>
-
           <n-card class="card" size="large" :bordered="false">
             <n-space vertical size="large">
               <n-space align="center" justify="space-between">

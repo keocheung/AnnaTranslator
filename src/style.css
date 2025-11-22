@@ -19,6 +19,65 @@ body {
   min-height: 100vh;
 }
 
+.title-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.78);
+  border-bottom: 1px solid rgba(20, 48, 70, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.title-bar,
+.title-bar * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.title-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.title-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.app-title {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.close-btn:hover {
+  background: #ffe3e3;
+  border-color: rgba(229, 57, 53, 0.4);
+}
+
+.close-btn:active {
+  transform: translateY(1px);
+}
+
 .section-title {
   text-transform: uppercase;
   letter-spacing: 0.08em;
