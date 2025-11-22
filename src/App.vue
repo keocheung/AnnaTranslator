@@ -19,6 +19,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import OpenAI from "openai";
 import { useSettingsState } from "./settings";
+import { recordTranslationHistory } from "./history";
 
 const settings = useSettingsState();
 const originalText = ref("");
@@ -93,6 +94,7 @@ async function translate(text: string) {
       const cached = await invoke<string | null>("get_cached_translation", { text: content });
       if (cached) {
         translatedText.value = cached;
+        void persistTranslationHistory(content, translatedText.value);
         message.success("命中本地缓存");
         return;
       }
@@ -154,6 +156,10 @@ async function translate(text: string) {
     } catch (error) {
       console.error("Failed to store translation cache:", error);
     }
+  }
+
+  if (translatedText.value) {
+    void persistTranslationHistory(content, translatedText.value);
   }
 }
 
@@ -235,7 +241,7 @@ async function openSettingsWindow() {
 
   const settingsWindow = new WebviewWindow("settings", {
     url: "index.html#settings",
-    title: "Local Translator - 设置",
+    title: "Anna Translator - 设置",
     width: 560,
     height: 720,
     alwaysOnTop: true,
@@ -250,6 +256,40 @@ async function openSettingsWindow() {
   });
 }
 
+async function openHistoryWindow() {
+  if (!isTauri) {
+    message.info("历史窗口仅在 Tauri 应用内可用");
+    return;
+  }
+
+  const existing = await WebviewWindow.getByLabel("history");
+  if (existing) {
+    await existing.setFocus();
+    return;
+  }
+
+  const historyWindow = new WebviewWindow("history", {
+    url: "index.html#history",
+    title: "Anna Translator - 历史",
+    width: 640,
+    height: 760,
+    alwaysOnTop: true,
+    resizable: true,
+    decorations: true,
+    visible: true
+  });
+
+  historyWindow.once("tauri://error", (e) => {
+    console.error("Failed to open history window", e);
+    message.error("历史窗口打开失败");
+  });
+}
+
+async function persistTranslationHistory(original: string, translation: string) {
+  if (!translation.trim()) return;
+  await recordTranslationHistory(original, translation);
+}
+
 </script>
 
 <template>
@@ -257,11 +297,12 @@ async function openSettingsWindow() {
     <div class="title-bar" data-tauri-drag-region @mousedown="startDragging">
       <div class="title-bar__left drag-region" data-tauri-drag-region>
         <n-gradient-text class="app-title" gradient="linear-gradient(120deg, #4c83ff, #4fd1c5)">
-          Local Translator
+          Anna Translator
         </n-gradient-text>
         <n-tag size="small" type="success" bordered>监听端口 {{ settings.serverPort }}</n-tag>
       </div>
       <div class="title-bar__actions no-drag">
+        <n-button size="tiny" quaternary @click="openHistoryWindow">历史</n-button>
         <n-button size="tiny" quaternary @click="openSettingsWindow">设置</n-button>
         <span class="section-title">置顶</span>
         <n-switch size="small" :value="settings.keepOnTop" @update:value="handleKeepOnTop" />

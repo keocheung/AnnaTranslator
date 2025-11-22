@@ -71,8 +71,8 @@ const settings = useSettingsState();
               <div class="section-title">本地 HTTP 推送示例</div>
               <div class="mono" style="background: #0c1b2e; color: #b3d4ff; padding: 12px; border-radius: 8px;">
                 curl -X POST http://127.0.0.1:{{ settings.serverPort }}/submit \\\n
-                -H "Content-Type: application/json" \\\n
-                -d '{"text":"<待翻译文本>"}'
+                -H "Content-Type: text/plain" \\\n
+                --data-raw '<待翻译文本>'
               </div>
             </n-form>
           </n-card>

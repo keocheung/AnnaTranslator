@@ -1,10 +1,10 @@
-# Local Translator (Tauri 2 + Vue + Naive UI)
+# Anna Translator (Tauri 2 + Vue + Naive UI)
 
 一个类似 LunaTranslator 的 Galgame 翻译悬浮窗，使用 Tauri 2 + Vue 3 + Naive UI + Bun 构建。
 
 ## 功能概览
 - 前置窗口：默认置顶，可切换。
-- 本地 HTTP 监听：`POST http://127.0.0.1:17889/submit`，JSON `{ "text": "..." }` 触发翻译。
+- 本地 HTTP 监听：`POST http://127.0.0.1:17889/submit`，纯文本正文触发翻译。
 - OpenAI 兼容输入：可选开关，接受 `/v1/chat/completions` 形式请求，将用户消息推送到前端（响应固定 404）。
 - OpenAI 翻译：可配置 Base URL、Key、Model、Prompt，支持流式输出。
 - 字体与字号：自定义字体栈和大小，便于搭配 Gal 字体。
@@ -25,8 +25,8 @@ bunx tauri build
 ## 推送示例
 ```bash
 curl -X POST http://127.0.0.1:17889/submit \
-  -H "Content-Type: application/json" \
-  -d '{"text":"こんにちは。"}'
+  -H "Content-Type: text/plain" \
+  --data-raw 'こんにちは。'
 
 # 开启“OpenAI 兼容输入”后，可接受以下格式（返回固定 404，仍会推送原文到前端）
 curl -X POST http://127.0.0.1:17889/v1/chat/completions \

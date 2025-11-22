@@ -4,11 +4,13 @@ use anyhow::Result;
 use arboard::Clipboard;
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
 use rusqlite::{Connection, OptionalExtension};
-use serde::Deserialize;
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
@@ -20,6 +22,8 @@ use xxhash_rust::xxh3::xxh3_64;
 const DEFAULT_PORT: u16 = 17889;
 static CLIPBOARD_ENABLED: AtomicBool = AtomicBool::new(false);
 static OPENAI_COMPATIBLE_INPUT: AtomicBool = AtomicBool::new(false);
+static TRANSLATION_HISTORY: Lazy<Mutex<Vec<HistoryEntry>>> = Lazy::new(|| Mutex::new(Vec::new()));
+const MAX_HISTORY: usize = 1000;
 
 fn cache_db_path(app: &AppHandle) -> Result<PathBuf> {
     let mut dir = app.path().app_data_dir()?;
@@ -44,11 +48,6 @@ fn init_cache_schema(conn: &Connection) -> rusqlite::Result<()> {
 
 fn cache_key(text: &str) -> String {
     format!("{:016x}", xxh3_64(text.as_bytes()))
-}
-
-#[derive(Deserialize, Debug)]
-struct IncomingText {
-    text: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -86,11 +85,10 @@ struct OpenAIContentPart {
 
 async fn submit(
     State(app): State<AppHandle>,
-    Json(payload): Json<IncomingText>,
+    body: String,
 ) -> impl axum::response::IntoResponse {
-    let text = payload.text;
-    println!("[tauri] received /submit, len={}", text.len());
-    if let Err(err) = app.emit("incoming_text", text) {
+    println!("[tauri] received /submit, len={}", body.len());
+    if let Err(err) = app.emit("incoming_text", body) {
         eprintln!("[tauri] failed to emit incoming_text event: {err}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -214,6 +212,46 @@ fn set_openai_compatible_input(enabled: bool) {
     OPENAI_COMPATIBLE_INPUT.store(enabled, Ordering::Relaxed);
 }
 
+#[derive(Clone, Serialize)]
+struct HistoryEntry {
+    original: String,
+    translation: String,
+}
+
+#[tauri::command]
+fn record_translation_history(app: AppHandle, original: String, translation: String) {
+    if original.trim().is_empty() || translation.trim().is_empty() {
+        return;
+    }
+
+    let mut history = TRANSLATION_HISTORY
+        .lock()
+        .expect("translation history mutex poisoned");
+    history.push(HistoryEntry {
+        original,
+        translation,
+    });
+
+    if history.len() > MAX_HISTORY {
+        let overflow = history.len() - MAX_HISTORY;
+        history.drain(0..overflow);
+    }
+
+    drop(history);
+
+    if let Err(err) = app.emit("translation_history_updated", ()) {
+        eprintln!("[tauri] failed to emit translation_history_updated: {err}");
+    }
+}
+
+#[tauri::command]
+fn get_translation_history() -> Vec<HistoryEntry> {
+    TRANSLATION_HISTORY
+        .lock()
+        .expect("translation history mutex poisoned")
+        .clone()
+}
+
 #[tauri::command]
 async fn get_cached_translation(app: AppHandle, text: String) -> Result<Option<String>, String> {
     let path = cache_db_path(&app).map_err(|e| e.to_string())?;
@@ -273,7 +311,9 @@ fn main() -> Result<()> {
             set_clipboard_watch,
             set_openai_compatible_input,
             get_cached_translation,
-            store_translation
+            store_translation,
+            record_translation_history,
+            get_translation_history
         ])
         .setup(|app| {
             // Clone to detach lifetime from setup closure.
