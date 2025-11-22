@@ -1,4 +1,6 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { LazyStore } from "@tauri-apps/plugin-store";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 
 export type Settings = {
   baseUrl: string;
@@ -18,7 +20,7 @@ export const defaultSettings: Settings = {
   apiKey: "",
   model: "gpt-4o-mini",
   prompt: "你是一个 Galgame 文本翻译助手，请将原文翻译为简洁、流畅的中文对白，保留原有格式与人名。",
-  fontFamily: "\"LXGW WenKai\", \"Noto Sans SC\", \"Space Grotesk\", sans-serif",
+  fontFamily: "\"Noto Sans CJK SC\", \"Noto Sans SC\", sans-serif",
   fontSize: 18,
   serverPort: 17889,
   keepOnTop: true,
@@ -26,7 +28,13 @@ export const defaultSettings: Settings = {
   openaiCompatibleInput: false
 };
 
+const STORAGE_FILE = "settings.json";
 const STORAGE_KEY = "translator-settings";
+const store = new LazyStore(STORAGE_FILE);
+
+const isTauri =
+  typeof window !== "undefined" &&
+  ("__TAURI_METADATA__" in window || "__TAURI_INTERNALS__" in window || "__TAURI_IPC__" in window);
 
 function parseSettings(raw: string | null): Settings {
   if (!raw) return { ...defaultSettings };
@@ -39,30 +47,96 @@ function parseSettings(raw: string | null): Settings {
   }
 }
 
-export function loadSettings(): Settings {
-  return parseSettings(localStorage.getItem(STORAGE_KEY));
+async function loadPersistedSettings(): Promise<Settings> {
+  if (!isTauri) {
+    return parseSettings(localStorage.getItem(STORAGE_KEY));
+  }
+
+  try {
+    await store.init();
+    const stored = await store.get<Partial<Settings>>(STORAGE_KEY);
+    if (stored && Object.keys(stored).length > 0) {
+      return { ...defaultSettings, ...stored };
+    }
+  } catch (error) {
+    console.error("Failed to load settings from store, falling back to defaults:", error);
+  }
+
+  const legacy = localStorage.getItem(STORAGE_KEY);
+  if (legacy) {
+    const parsed = parseSettings(legacy);
+    await persistSettings(parsed);
+    localStorage.removeItem(STORAGE_KEY);
+    return parsed;
+  }
+
+  return { ...defaultSettings };
+}
+
+async function persistSettings(val: Settings) {
+  if (!isTauri) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
+    return;
+  }
+
+  try {
+    await store.init();
+    await store.set(STORAGE_KEY, val);
+    await store.save();
+  } catch (error) {
+    console.error("Failed to persist settings to store:", error);
+  }
 }
 
 export function useSettingsState() {
-  const settings = ref<Settings>(loadSettings());
+  const settings = ref<Settings>({ ...defaultSettings });
+  let syncingFromStore = false;
+  let unlisten: UnlistenFn | null = null;
 
-  const handleStorage = (event: StorageEvent) => {
-    if (event.key && event.key !== STORAGE_KEY) return;
-    settings.value = parseSettings(event.newValue ?? localStorage.getItem(STORAGE_KEY));
+  const refreshFromPersistence = async () => {
+    syncingFromStore = true;
+    settings.value = await loadPersistedSettings();
+    setTimeout(() => {
+      syncingFromStore = false;
+    }, 0);
   };
 
-  onMounted(() => {
-    window.addEventListener("storage", handleStorage);
+  const handleStorageEvent = (event: StorageEvent) => {
+    if (event.key && event.key !== STORAGE_KEY) return;
+    void refreshFromPersistence();
+  };
+
+  onMounted(async () => {
+    await refreshFromPersistence();
+
+    if (isTauri) {
+      try {
+        await store.init();
+        unlisten = await store.onChange(() => {
+          void refreshFromPersistence();
+        });
+      } catch (error) {
+        console.error("Failed to subscribe to store changes:", error);
+      }
+    } else {
+      window.addEventListener("storage", handleStorageEvent);
+    }
   });
 
   onBeforeUnmount(() => {
-    window.removeEventListener("storage", handleStorage);
+    if (unlisten) {
+      unlisten();
+    }
+    if (!isTauri) {
+      window.removeEventListener("storage", handleStorageEvent);
+    }
   });
 
   watch(
     settings,
     (val) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
+      if (syncingFromStore) return;
+      void persistSettings(val);
     },
     { deep: true }
   );

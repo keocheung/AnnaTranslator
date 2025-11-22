@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use serde_json::json;
+use tauri_plugin_store::Builder as StoreBuilder;
 use tokio::task::spawn_blocking;
 use tokio::time::sleep;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -191,6 +192,7 @@ fn set_openai_compatible_input(enabled: bool) {
 
 fn main() -> Result<()> {
     tauri::Builder::default()
+        .plugin(StoreBuilder::default().build())
         .invoke_handler(tauri::generate_handler![
             set_clipboard_watch,
             set_openai_compatible_input

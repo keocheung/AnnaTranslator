@@ -14,9 +14,10 @@
     "tauri": "bunx tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.0.0",
-    "openai": "^4.77.4",
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-store": "^2.4.1",
     "naive-ui": "^2.38.3",
+    "openai": "^4.77.4",
     "vue": "^3.5.12"
   },
   "devDependencies": {
