@@ -14,10 +14,10 @@
 # 安装依赖（需要本机已有 Bun）
 bun install
 
-# 开发调试（启动 Vite 与 Tauri 2）
-bunx tauri dev
+# 开发调试（启动 Vite 与 Tauri 2，并开启 devtools）
+bun run tauri:dev
 
-# 构建
+# 构建（生产模式关闭 devtools）
 bunx tauri build
 ```
 

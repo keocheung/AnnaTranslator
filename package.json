@@ -9,6 +9,8 @@
     "build": "bun --bun vite build",
     "preview": "bun --bun vite preview",
     "lint": "bun --bun tsc --noEmit",
+    "tauri:dev": "bunx tauri dev --features devtools",
+    "tauri:build": "bunx tauri build",
     "tauri": "bunx tauri"
   },
   "dependencies": {

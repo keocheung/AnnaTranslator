@@ -11,7 +11,6 @@ use serde_json::json;
 use tokio::task::spawn_blocking;
 use tokio::time::sleep;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 
 const DEFAULT_PORT: u16 = 17889;
 static CLIPBOARD_ENABLED: AtomicBool = AtomicBool::new(false);
