@@ -4,12 +4,8 @@ import {
   NButton,
   NCard,
   NConfigProvider,
-  NDivider,
-  NForm,
-  NFormItem,
   NGradientText,
   NInput,
-  NInputNumber,
   NLayout,
   NLayoutContent,
   NSpace,
@@ -19,31 +15,11 @@ import {
 } from "naive-ui";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import OpenAI from "openai";
+import { useSettingsState } from "./settings";
 
-type Settings = {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  prompt: string;
-  fontFamily: string;
-  fontSize: number;
-  serverPort: number;
-  keepOnTop: boolean;
-};
-
-const defaultSettings: Settings = {
-  baseUrl: "https://api.openai.com",
-  apiKey: "",
-  model: "gpt-4o-mini",
-  prompt: "你是一个 Galgame 文本翻译助手，请将原文翻译为简洁、流畅的中文对白，保留原有格式与人名。",
-  fontFamily: "\"LXGW WenKai\", \"Noto Sans SC\", \"Space Grotesk\", sans-serif",
-  fontSize: 18,
-  serverPort: 17889,
-  keepOnTop: true
-};
-
-const settings = ref<Settings>(loadSettings());
+const settings = useSettingsState();
 const originalText = ref("");
 const translatedText = ref("");
 const streaming = ref(false);
@@ -63,15 +39,12 @@ const textStyle = computed(() => ({
 }));
 
 watch(
-  settings,
-  (val) => {
-    localStorage.setItem("translator-settings", JSON.stringify(val));
-  },
-  { deep: true }
+  () => settings.value.keepOnTop,
+  (alwaysOnTop) => applyAlwaysOnTop(alwaysOnTop),
+  { immediate: true }
 );
 
 onMounted(async () => {
-  await toggleOnTop(settings.value.keepOnTop);
   try {
     const unlisten = await listen<{ text: string } | string>("incoming_text", async (event) => {
       const payload = typeof event.payload === "string" ? event.payload : event.payload?.text ?? "";
@@ -90,18 +63,6 @@ onBeforeUnmount(() => {
   controller.value?.abort();
   unlistenFns.forEach((fn) => fn());
 });
-
-function loadSettings(): Settings {
-  const cached = localStorage.getItem("translator-settings");
-  if (!cached) return { ...defaultSettings };
-  try {
-    const parsed = JSON.parse(cached) as Partial<Settings>;
-    return { ...defaultSettings, ...parsed };
-  } catch (error) {
-    console.error("Failed to parse settings:", error);
-    return { ...defaultSettings };
-  }
-}
 
 async function translate(text: string) {
   const content = text.trim();
@@ -153,14 +114,18 @@ async function translate(text: string) {
   }
 }
 
-async function toggleOnTop(alwaysOnTop: boolean) {
+async function applyAlwaysOnTop(alwaysOnTop: boolean) {
+  if (!isTauri) return;
   try {
     await appWindow.setAlwaysOnTop(alwaysOnTop);
-    settings.value.keepOnTop = alwaysOnTop;
   } catch (error) {
     message.error("无法设置置顶窗口");
     console.error(error);
   }
+}
+
+function handleKeepOnTop(alwaysOnTop: boolean) {
+  settings.value.keepOnTop = alwaysOnTop;
 }
 
 function stopStream() {
@@ -195,6 +160,35 @@ async function startDragging(event: MouseEvent) {
   }
 }
 
+async function openSettingsWindow() {
+  if (!isTauri) {
+    message.info("设置窗口仅在 Tauri 应用内可用");
+    return;
+  }
+
+  const existing = await WebviewWindow.getByLabel("settings");
+  if (existing) {
+    await existing.setFocus();
+    return;
+  }
+
+  const settingsWindow = new WebviewWindow("settings", {
+    url: "index.html#settings",
+    title: "Local Translator - 设置",
+    width: 560,
+    height: 720,
+    alwaysOnTop: true,
+    resizable: true,
+    decorations: true,
+    visible: true
+  });
+
+  settingsWindow.once("tauri://error", (e) => {
+    console.error("Failed to open settings window", e);
+    message.error("设置窗口打开失败");
+  });
+}
+
 </script>
 
 <template>
@@ -207,8 +201,9 @@ async function startDragging(event: MouseEvent) {
         <n-tag size="small" type="success" bordered>监听端口 {{ settings.serverPort }}</n-tag>
       </div>
       <div class="title-bar__actions no-drag">
+        <n-button size="tiny" quaternary @click="openSettingsWindow">设置</n-button>
         <span class="section-title">置顶</span>
-        <n-switch size="small" :value="settings.keepOnTop" @update:value="toggleOnTop" />
+        <n-switch size="small" :value="settings.keepOnTop" @update:value="handleKeepOnTop" />
       </div>
     </div>
     <n-layout content-style="padding: 12px 18px 28px 18px;">
@@ -243,12 +238,12 @@ async function startDragging(event: MouseEvent) {
 
           <n-card class="card" size="large" :bordered="false">
             <n-space vertical size="large">
-              <div class="section-title">译文 (流式)</div>
+              <div class="section-title">译文</div>
               <div
                 style="padding: 16px; border-radius: 12px; background: #0b1727; color: #e8f0ff; min-height: 120px; white-space: pre-wrap;"
                 :style="textStyle"
               >
-                {{ translatedText || (streaming ? "正在流式翻译..." : "尚未有译文") }}
+                {{ translatedText || (streaming ? "正在翻译..." : "尚未有译文") }}
               </div>
               <n-space>
                 <n-button type="primary" ghost @click="copyTranslation" :disabled="!translatedText">
@@ -257,53 +252,6 @@ async function startDragging(event: MouseEvent) {
                 <n-tag v-if="streaming" type="info" round bordered>流式输出中</n-tag>
               </n-space>
             </n-space>
-          </n-card>
-
-          <n-card class="card" title="设置" size="large" :bordered="false">
-            <n-form label-placement="top" size="medium">
-              <n-space :wrap="true" :size="[24, 12]">
-                <n-form-item label="OpenAI Base URL">
-                  <n-input v-model:value="settings.baseUrl" placeholder="https://api.openai.com" />
-                </n-form-item>
-                <n-form-item label="OpenAI API Key">
-                  <n-input
-                    v-model:value="settings.apiKey"
-                    placeholder="sk-..."
-                    type="password"
-                    show-password-on="click"
-                  />
-                </n-form-item>
-                <n-form-item label="模型">
-                  <n-input v-model:value="settings.model" placeholder="gpt-4o-mini" />
-                </n-form-item>
-              </n-space>
-
-              <n-form-item label="翻译提示词">
-                <n-input
-                  v-model:value="settings.prompt"
-                  type="textarea"
-                  :autosize="{ minRows: 2, maxRows: 6 }"
-                />
-              </n-form-item>
-
-              <n-space :wrap="true" :size="[24, 12]">
-                <n-form-item label="字体">
-                  <n-input v-model:value="settings.fontFamily" placeholder="自定义字体栈" />
-                </n-form-item>
-                <n-form-item label="字号">
-                  <n-input-number v-model:value="settings.fontSize" :min="12" :max="32" />
-                </n-form-item>
-              </n-space>
-
-              <n-divider />
-
-              <div class="section-title">本地 HTTP 推送示例</div>
-              <div class="mono" style="background: #0c1b2e; color: #b3d4ff; padding: 12px; border-radius: 8px;">
-                curl -X POST http://127.0.0.1:{{ settings.serverPort }}/submit \\\n
-                -H "Content-Type: application/json" \\\n
-                -d '{"text":"<待翻译文本>"}'
-              </div>
-            </n-form>
           </n-card>
         </n-space>
       </n-layout-content>

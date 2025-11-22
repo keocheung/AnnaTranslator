@@ -1,5 +1,9 @@
 import { createApp } from "vue";
 import App from "./App.vue";
+import SettingsWindow from "./SettingsWindow.vue";
 import "./style.css";
 
-createApp(App).mount("#app");
+const isSettingsWindow = window.location.hash === "#settings";
+const RootComponent = isSettingsWindow ? SettingsWindow : App;
+
+createApp(RootComponent).mount("#app");
