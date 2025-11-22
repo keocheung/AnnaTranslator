@@ -3,19 +3,48 @@
 use anyhow::Result;
 use arboard::Clipboard;
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
+use rusqlite::{Connection, OptionalExtension};
 use serde::Deserialize;
-use std::net::SocketAddr;
-use std::time::Duration;
-use tauri::{AppHandle, Emitter};
 use serde_json::json;
+use std::fs;
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_store::Builder as StoreBuilder;
 use tokio::task::spawn_blocking;
 use tokio::time::sleep;
-use std::sync::atomic::{AtomicBool, Ordering};
+use xxhash_rust::xxh3::xxh3_64;
 
 const DEFAULT_PORT: u16 = 17889;
 static CLIPBOARD_ENABLED: AtomicBool = AtomicBool::new(false);
 static OPENAI_COMPATIBLE_INPUT: AtomicBool = AtomicBool::new(false);
+
+fn cache_db_path(app: &AppHandle) -> Result<PathBuf> {
+    let mut dir = app.path().app_data_dir()?;
+    dir.push("cache");
+    fs::create_dir_all(&dir)?;
+    dir.push("translations.sqlite3");
+    Ok(dir)
+}
+
+fn init_cache_schema(conn: &Connection) -> rusqlite::Result<()> {
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS translations (
+            key TEXT PRIMARY KEY,
+            original TEXT NOT NULL,
+            translation TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )",
+        [],
+    )?;
+    Ok(())
+}
+
+fn cache_key(text: &str) -> String {
+    format!("{:016x}", xxh3_64(text.as_bytes()))
+}
 
 #[derive(Deserialize, Debug)]
 struct IncomingText {
@@ -68,10 +97,7 @@ async fn submit(
             Json(json!({ "status": "error", "message": err.to_string() })),
         );
     }
-    (
-        StatusCode::OK,
-        Json(json!({ "status": "ok" })),
-    )
+    (StatusCode::OK, Json(json!({ "status": "ok" })))
 }
 
 async fn openai_chat_completions(
@@ -97,9 +123,7 @@ async fn openai_chat_completions(
             text.len()
         );
         if let Err(err) = app.emit("incoming_text", text) {
-            eprintln!(
-                "[tauri] failed to emit incoming_text from OpenAI-compatible input: {err}"
-            );
+            eprintln!("[tauri] failed to emit incoming_text from OpenAI-compatible input: {err}");
         }
     } else {
         eprintln!("[tauri] OpenAI-compatible request missing user message");
@@ -190,12 +214,66 @@ fn set_openai_compatible_input(enabled: bool) {
     OPENAI_COMPATIBLE_INPUT.store(enabled, Ordering::Relaxed);
 }
 
+#[tauri::command]
+async fn get_cached_translation(app: AppHandle, text: String) -> Result<Option<String>, String> {
+    let path = cache_db_path(&app).map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = Connection::open(path).map_err(|e| e.to_string())?;
+        init_cache_schema(&conn).map_err(|e| e.to_string())?;
+        let key = cache_key(&text);
+        let mut stmt = conn
+            .prepare("SELECT translation FROM translations WHERE key = ?1 LIMIT 1")
+            .map_err(|e| e.to_string())?;
+        let translation = stmt
+            .query_row([key], |row| row.get::<_, String>(0))
+            .optional()
+            .map_err(|e| e.to_string())?;
+        Ok::<_, String>(translation)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn store_translation(
+    app: AppHandle,
+    text: String,
+    translation: String,
+) -> Result<(), String> {
+    if translation.trim().is_empty() {
+        return Ok(());
+    }
+
+    let path = cache_db_path(&app).map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = Connection::open(path).map_err(|e| e.to_string())?;
+        init_cache_schema(&conn).map_err(|e| e.to_string())?;
+        let key = cache_key(&text);
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| e.to_string())?
+            .as_secs() as i64;
+
+        conn.execute(
+            "INSERT OR REPLACE INTO translations (key, original, translation, created_at)
+            VALUES (?1, ?2, ?3, ?4)",
+            (&key, &text, &translation, now),
+        )
+        .map_err(|e| e.to_string())?;
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 fn main() -> Result<()> {
     tauri::Builder::default()
         .plugin(StoreBuilder::default().build())
         .invoke_handler(tauri::generate_handler![
             set_clipboard_watch,
-            set_openai_compatible_input
+            set_openai_compatible_input,
+            get_cached_translation,
+            store_translation
         ])
         .setup(|app| {
             // Clone to detach lifetime from setup closure.

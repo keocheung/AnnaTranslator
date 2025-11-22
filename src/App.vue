@@ -83,6 +83,24 @@ async function translate(text: string) {
     message.warning("没有可翻译的文本");
     return;
   }
+
+  controller.value?.abort();
+  controller.value = null;
+  streaming.value = false;
+
+  if (isTauri) {
+    try {
+      const cached = await invoke<string | null>("get_cached_translation", { text: content });
+      if (cached) {
+        translatedText.value = cached;
+        message.success("命中本地缓存");
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to read cached translation:", error);
+    }
+  }
+
   if (!settings.value.apiKey) {
     message.error("请先填写 OpenAI API Key");
     return;
@@ -95,11 +113,11 @@ async function translate(text: string) {
     dangerouslyAllowBrowser: true
   });
 
-  controller.value?.abort();
   const abortController = new AbortController();
   controller.value = abortController;
   translatedText.value = "";
   streaming.value = true;
+  let shouldPersist = false;
 
   try {
     const completion = await client.chat.completions.create(
@@ -118,12 +136,24 @@ async function translate(text: string) {
       const delta = part.choices?.[0]?.delta?.content;
       if (delta) translatedText.value += delta;
     }
+    shouldPersist = true;
   } catch (error: unknown) {
     if ((error as Error)?.name === "AbortError") return;
     message.error((error as Error)?.message ?? "翻译失败");
   } finally {
     streaming.value = false;
     controller.value = null;
+  }
+
+  if (shouldPersist && translatedText.value && isTauri) {
+    try {
+      await invoke("store_translation", {
+        text: content,
+        translation: translatedText.value
+      });
+    } catch (error) {
+      console.error("Failed to store translation cache:", error);
+    }
   }
 }
 
