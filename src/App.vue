@@ -16,7 +16,13 @@ import {
   NTooltip,
   createDiscreteApi,
 } from "naive-ui";
-import { CloseRound, HistoryRound, SettingsRound } from "@vicons/material";
+import {
+  CloseRound,
+  HistoryRound,
+  LayersClearRound,
+  LayersRound,
+  SettingsRound,
+} from "@vicons/material";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -308,7 +314,14 @@ async function persistTranslationHistory(original: string, translation: string) 
       <div class="title-bar__actions no-drag">
         <n-tooltip trigger="hover">
           <template #trigger>
-            <n-switch :value="settings.keepOnTop" @update:value="handleKeepOnTop" />
+            <n-switch size="large" :value="settings.keepOnTop" @update:value="handleKeepOnTop">
+              <template #checked-icon>
+                <n-icon :component="LayersRound" />
+              </template>
+              <template #unchecked-icon>
+                <n-icon :component="LayersClearRound" />
+              </template>
+            </n-switch>
           </template>
           窗口置顶
         </n-tooltip>
