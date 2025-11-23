@@ -92,7 +92,8 @@ onBeforeUnmount(() => {
   unlistenFns.forEach((fn) => fn());
 });
 
-async function translate(text: string) {
+async function translate(text: string, options: { force?: boolean } = {}) {
+  const { force = false } = options;
   if (isPaused.value) {
     return;
   }
@@ -106,7 +107,7 @@ async function translate(text: string) {
   controller.value = null;
   streaming.value = false;
 
-  if (isTauri) {
+  if (isTauri && !force) {
     try {
       const cached = await invoke<string | null>("get_cached_translation", { text: content });
       if (cached) {
@@ -204,6 +205,15 @@ function stopStream() {
 function handleManualTranslate() {
   originalText.value = manualInput.value;
   translate(manualInput.value);
+}
+
+async function handleRetranslate() {
+  const content = originalText.value.trim();
+  if (!content) {
+    message.warning("没有可重新翻译的原文");
+    return;
+  }
+  await translate(content, { force: true });
 }
 
 function fillManualFromOriginal() {
@@ -412,6 +422,9 @@ async function getOpenAIConstructor() {
               <n-space>
                 <n-button type="primary" ghost @click="copyTranslation" :disabled="!translatedText">
                   复制译文
+                </n-button>
+                <n-button secondary @click="handleRetranslate" :disabled="!originalText || streaming">
+                  重新翻译
                 </n-button>
                 <n-tag v-if="streaming" type="info" round bordered>流式输出中</n-tag>
               </n-space>
