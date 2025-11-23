@@ -27,7 +27,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
-import OpenAI from "openai";
 import { useSettingsState } from "./settings";
 import { recordTranslationHistory } from "./history";
 
@@ -119,8 +118,7 @@ async function translate(text: string) {
     return;
   }
 
-  // Defer client creation to avoid SSR/Sandbox surprises.
-  const client = new OpenAI({
+  const client = new (await getOpenAIConstructor())({
     apiKey: settings.value.apiKey,
     baseURL: settings.value.baseUrl.replace(/\/$/, "") || undefined,
     dangerouslyAllowBrowser: true,
@@ -299,6 +297,15 @@ async function openHistoryWindow() {
 async function persistTranslationHistory(original: string, translation: string) {
   if (!translation.trim()) return;
   await recordTranslationHistory(original, translation);
+}
+
+let openAIConstructor: typeof import("openai").default | null = null;
+
+async function getOpenAIConstructor() {
+  if (openAIConstructor) return openAIConstructor;
+  const mod = await import("openai");
+  openAIConstructor = mod.default;
+  return openAIConstructor;
 }
 </script>
 

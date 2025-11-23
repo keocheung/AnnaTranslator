@@ -13,5 +13,15 @@ export default defineConfig({
     target: ["es2021", "chrome100", "safari15"],
     outDir: "dist",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          ui: ["naive-ui", "@vicons/material"],
+          tauri: ["@tauri-apps/api", "@tauri-apps/plugin-store"],
+          openai: ["openai"],
+        },
+      },
+    },
   },
 });

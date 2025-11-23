@@ -1,11 +1,24 @@
 import { createApp } from "vue";
-import App from "./App.vue";
-import SettingsWindow from "./SettingsWindow.vue";
-import HistoryWindow from "./HistoryWindow.vue";
 import "./style.css";
 
 const isSettingsWindow = window.location.hash === "#settings";
 const isHistoryWindow = window.location.hash === "#history";
-const RootComponent = isSettingsWindow ? SettingsWindow : isHistoryWindow ? HistoryWindow : App;
 
-createApp(RootComponent).mount("#app");
+async function bootstrap() {
+  if (isSettingsWindow) {
+    const module = await import("./SettingsWindow.vue");
+    createApp(module.default).mount("#app");
+    return;
+  }
+
+  if (isHistoryWindow) {
+    const module = await import("./HistoryWindow.vue");
+    createApp(module.default).mount("#app");
+    return;
+  }
+
+  const module = await import("./App.vue");
+  createApp(module.default).mount("#app");
+}
+
+void bootstrap();
