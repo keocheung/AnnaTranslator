@@ -3,15 +3,15 @@
 use anyhow::Result;
 use arboard::Clipboard;
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
-use rusqlite::{Connection, OptionalExtension};
 use once_cell::sync::Lazy;
+use regex::{Regex, RegexBuilder};
+use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::fs;
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_store::Builder as StoreBuilder;
@@ -24,6 +24,8 @@ static CLIPBOARD_ENABLED: AtomicBool = AtomicBool::new(false);
 static OPENAI_COMPATIBLE_INPUT: AtomicBool = AtomicBool::new(false);
 static TRANSLATION_HISTORY: Lazy<Mutex<Vec<HistoryEntry>>> = Lazy::new(|| Mutex::new(Vec::new()));
 const MAX_HISTORY: usize = 1000;
+static TEXT_REPLACEMENTS: Lazy<Mutex<Vec<TextReplacementRule>>> =
+    Lazy::new(|| Mutex::new(Vec::new()));
 
 fn cache_db_path(app: &AppHandle) -> Result<PathBuf> {
     let mut dir = app.path().app_data_dir()?;
@@ -48,6 +50,89 @@ fn init_cache_schema(conn: &Connection) -> rusqlite::Result<()> {
 
 fn cache_key(text: &str) -> String {
     format!("{:016x}", xxh3_64(text.as_bytes()))
+}
+
+fn build_regex(pattern: &str, flags: &str) -> Result<Regex, regex::Error> {
+    let mut builder = RegexBuilder::new(pattern);
+    for flag in flags.chars() {
+        match flag {
+            'i' | 'I' => {
+                builder.case_insensitive(true);
+            }
+            'm' | 'M' => {
+                builder.multi_line(true);
+            }
+            's' | 'S' => {
+                builder.dot_matches_new_line(true);
+            }
+            'x' | 'X' => {
+                builder.ignore_whitespace(true);
+            }
+            'U' => {
+                builder.swap_greed(true);
+            }
+            _ => {}
+        };
+    }
+    builder.build()
+}
+
+fn compile_replacement_rules(rules: Vec<ReplacementRulePayload>) -> Vec<TextReplacementRule> {
+    let mut compiled = Vec::new();
+    for rule in rules {
+        if rule.pattern.trim().is_empty() {
+            continue;
+        }
+
+        match build_regex(&rule.pattern, &rule.flags) {
+            Ok(regex) => compiled.push(TextReplacementRule {
+                regex,
+                replacement: rule.replacement,
+            }),
+            Err(err) => {
+                eprintln!("[tauri] failed to compile regex '{}': {}", rule.pattern, err);
+            }
+        }
+    }
+    compiled
+}
+
+fn apply_text_replacements(raw: &str) -> String {
+    let rules = TEXT_REPLACEMENTS
+        .lock()
+        .expect("text replacement mutex poisoned");
+
+    if rules.is_empty() {
+        return raw.to_string();
+    }
+
+    let mut output = raw.to_string();
+    for rule in rules.iter() {
+        output = rule
+            .regex
+            .replace_all(&output, rule.replacement.as_str())
+            .into_owned();
+    }
+    output
+}
+
+fn emit_processed_text(app: &AppHandle, raw: &str) -> Result<(), tauri::Error> {
+    let processed = apply_text_replacements(raw);
+    app.emit("incoming_text", processed)
+}
+
+#[derive(Debug)]
+struct TextReplacementRule {
+    regex: Regex,
+    replacement: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct ReplacementRulePayload {
+    pattern: String,
+    replacement: String,
+    #[serde(default)]
+    flags: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -78,8 +163,6 @@ impl Default for OpenAIContent {
 #[derive(Deserialize, Debug)]
 struct OpenAIContentPart {
     #[serde(default)]
-    r#type: String,
-    #[serde(default)]
     text: Option<String>,
 }
 
@@ -88,14 +171,11 @@ async fn submit(
     body: String,
 ) -> impl axum::response::IntoResponse {
     println!("[tauri] received /submit, len={}", body.len());
-    if let Err(err) = app.emit("incoming_text", body) {
+    if let Err(err) = emit_processed_text(&app, &body) {
         eprintln!("[tauri] failed to emit incoming_text event: {err}");
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "status": "error", "message": err.to_string() })),
-        );
+        return StatusCode::INTERNAL_SERVER_ERROR;
     }
-    (StatusCode::OK, Json(json!({ "status": "ok" })))
+    StatusCode::OK
 }
 
 async fn openai_chat_completions(
@@ -120,7 +200,8 @@ async fn openai_chat_completions(
             "[tauri] received OpenAI-compatible /v1/chat/completions, len={}",
             text.len()
         );
-        if let Err(err) = app.emit("incoming_text", text) {
+        let processed = apply_text_replacements(&text);
+        if let Err(err) = app.emit("incoming_text", processed) {
             eprintln!("[tauri] failed to emit incoming_text from OpenAI-compatible input: {err}");
         }
     } else {
@@ -185,9 +266,15 @@ fn start_clipboard_watcher(app: AppHandle) {
             }
 
             match poll_clipboard_text().await {
-                Ok(Some(text)) if !text.is_empty() && text != last => {
-                    last = text.clone();
-                    if let Err(err) = app.emit("incoming_text", text) {
+                Ok(Some(text)) if !text.is_empty() => {
+                    let processed = apply_text_replacements(&text);
+                    if processed.is_empty() || processed == last {
+                        sleep(Duration::from_millis(1500)).await;
+                        continue;
+                    }
+
+                    last = processed.clone();
+                    if let Err(err) = app.emit("incoming_text", processed) {
                         eprintln!("[tauri] failed to emit clipboard incoming_text: {err}");
                     }
                 }
@@ -210,6 +297,16 @@ fn set_clipboard_watch(enabled: bool) {
 #[tauri::command]
 fn set_openai_compatible_input(enabled: bool) {
     OPENAI_COMPATIBLE_INPUT.store(enabled, Ordering::Relaxed);
+}
+
+#[tauri::command]
+fn set_text_replacements(rules: Vec<ReplacementRulePayload>) -> Result<(), String> {
+    let compiled = compile_replacement_rules(rules);
+    let mut storage = TEXT_REPLACEMENTS
+        .lock()
+        .map_err(|e| e.to_string())?;
+    *storage = compiled;
+    Ok(())
 }
 
 #[derive(Clone, Serialize)]
@@ -310,6 +407,7 @@ fn main() -> Result<()> {
         .invoke_handler(tauri::generate_handler![
             set_clipboard_watch,
             set_openai_compatible_input,
+            set_text_replacements,
             get_cached_translation,
             store_translation,
             record_translation_history,

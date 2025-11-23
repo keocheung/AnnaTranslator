@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import {
+  NAlert,
+  NButton,
   NCard,
   NCode,
   NConfigProvider,
+  NDivider,
   NForm,
   NFormItem,
   NInput,
   NInputNumber,
+  NSpace,
   NSwitch,
   NTabs,
   NTabPane,
@@ -20,12 +24,27 @@ import { computed } from "vue";
 
 const settings = useSettingsState();
 
-const submitCommand = `curl -X POST http://127.0.0.1:${settings.value.apiKey}/submit \\
+const submitCommand = computed(
+  () => `curl -X POST http://127.0.0.1:${settings.value.serverPort}/submit \\
               -H 'Content-Type: text/plain' \\
-              --data-raw '<待翻译文本>'`;
+              --data-raw '<待翻译文本>'`
+);
 
 const theme = computed(() => (useOsTheme().value === "dark" ? darkTheme : null));
 hljs.registerLanguage("bash", bash);
+
+function addReplacementRule() {
+  settings.value.replacements = [
+    ...settings.value.replacements,
+    { pattern: "", replacement: "", flags: "" },
+  ];
+}
+
+function removeReplacementRule(index: number) {
+  const next = [...settings.value.replacements];
+  next.splice(index, 1);
+  settings.value.replacements = next;
+}
 </script>
 
 <template>
@@ -86,6 +105,57 @@ hljs.registerLanguage("bash", bash);
             <n-form-item label="本地HTTP推送示例">
               <n-code :code="submitCommand" language="bash" word-wrap class="pre-code" />
             </n-form-item>
+            <n-divider />
+          </n-tab-pane>
+
+          <n-tab-pane name="preprocess" label="输入处理">
+            <n-form label-placement="top" size="medium">
+              <n-alert
+                title="按照顺序依次进行替换（Rust 正则语法）"
+                type="info"
+                class="preprocess-tip"
+                :closable="false"
+              >
+                示例：使用 <code>第(\\d+)个</code> 替换为 <code>$1. </code> 可将“第12个”转为“12. ”。
+              </n-alert>
+              <div class="replacement-rules">
+                <div v-if="!settings.replacements.length" class="rules-placeholder">
+                  暂无规则，点击下方“新增规则”开始配置。
+                </div>
+                <n-card
+                  v-for="(rule, index) in settings.replacements"
+                  :key="index"
+                  size="small"
+                  class="rule-card"
+                  :bordered="true"
+                >
+                  <n-space vertical size="small">
+                    <n-form-item label="正则表达式">
+                      <n-input v-model:value="rule.pattern" placeholder="例如：第(\\d+)个" />
+                    </n-form-item>
+                    <n-form-item label="替换为">
+                      <n-input v-model:value="rule.replacement" placeholder="$1. " />
+                    </n-form-item>
+                    <n-form-item label="Flags（可选）">
+                      <n-input v-model:value="rule.flags" placeholder="例如：im" />
+                    </n-form-item>
+                    <div class="rule-actions">
+                      <n-button
+                        text
+                        type="error"
+                        size="small"
+                        @click="removeReplacementRule(index)"
+                      >
+                        删除
+                      </n-button>
+                    </div>
+                  </n-space>
+                </n-card>
+              </div>
+              <n-space>
+                <n-button tertiary type="primary" @click="addReplacementRule">新增规则</n-button>
+              </n-space>
+            </n-form>
           </n-tab-pane>
         </n-tabs>
       </n-card>
@@ -109,5 +179,30 @@ body {
 .pre-code {
   border: 1px solid var(--n-border-color);
   padding: 12px;
+}
+
+.preprocess-tip {
+  margin-bottom: 10px;
+}
+
+.replacement-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.rule-card {
+  box-shadow: none;
+}
+
+.rule-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rules-placeholder {
+  color: var(--n-text-color-3);
+  padding: 6px 2px;
 }
 </style>

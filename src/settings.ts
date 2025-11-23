@@ -1,5 +1,6 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { LazyStore } from "@tauri-apps/plugin-store";
+import { invoke } from "@tauri-apps/api/core";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
 export type Settings = {
@@ -13,6 +14,7 @@ export type Settings = {
   keepOnTop: boolean;
   monitorClipboard: boolean;
   openaiCompatibleInput: boolean;
+  replacements: TextReplacementRule[];
 };
 
 export const defaultSettings: Settings = {
@@ -26,6 +28,13 @@ export const defaultSettings: Settings = {
   keepOnTop: true,
   monitorClipboard: false,
   openaiCompatibleInput: false,
+  replacements: [],
+};
+
+export type TextReplacementRule = {
+  pattern: string;
+  replacement: string;
+  flags?: string;
 };
 
 const STORAGE_FILE = "settings.json";
@@ -73,6 +82,18 @@ async function loadPersistedSettings(): Promise<Settings> {
   return { ...defaultSettings };
 }
 
+async function syncTextReplacements(rules: TextReplacementRule[]) {
+  if (!isTauri) return;
+
+  try {
+    await invoke("set_text_replacements", {
+      rules,
+    });
+  } catch (error) {
+    console.error("Failed to sync text replacements to backend:", error);
+  }
+}
+
 async function persistSettings(val: Settings) {
   if (!isTauri) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
@@ -96,6 +117,7 @@ export function useSettingsState() {
   const refreshFromPersistence = async () => {
     syncingFromStore = true;
     settings.value = await loadPersistedSettings();
+    await syncTextReplacements(settings.value.replacements);
     setTimeout(() => {
       syncingFromStore = false;
     }, 0);
@@ -137,6 +159,7 @@ export function useSettingsState() {
     (val) => {
       if (syncingFromStore) return;
       void persistSettings(val);
+      void syncTextReplacements(val.replacements);
     },
     { deep: true }
   );
