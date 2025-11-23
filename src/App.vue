@@ -21,6 +21,8 @@ import {
   HistoryRound,
   LayersClearRound,
   LayersRound,
+  PauseRound,
+  PlayArrowRound,
   SettingsRound,
 } from "@vicons/material";
 import { invoke } from "@tauri-apps/api/core";
@@ -48,6 +50,8 @@ const textStyle = computed(() => ({
   fontSize: `${settings.value.fontSize}px`,
   lineHeight: 1.5,
 }));
+
+let isPaused = ref(false);
 
 watch(
   () => settings.value.keepOnTop,
@@ -89,6 +93,9 @@ onBeforeUnmount(() => {
 });
 
 async function translate(text: string) {
+  if (isPaused.value) {
+    return;
+  }
   const content = text.trim();
   if (!content) {
     message.warning("没有可翻译的文本");
@@ -105,7 +112,7 @@ async function translate(text: string) {
       if (cached) {
         translatedText.value = cached;
         void persistTranslationHistory(content, translatedText.value);
-        message.success("命中本地缓存");
+        // message.success("命中本地缓存");
         return;
       }
     } catch (error) {
@@ -184,6 +191,10 @@ async function applyAlwaysOnTop(alwaysOnTop: boolean) {
 
 function handleKeepOnTop(alwaysOnTop: boolean) {
   settings.value.keepOnTop = alwaysOnTop;
+}
+
+function handlePause(play: boolean) {
+  isPaused.value = !play;
 }
 
 function stopStream() {
@@ -321,6 +332,19 @@ async function getOpenAIConstructor() {
       <div class="title-bar__actions no-drag">
         <n-tooltip trigger="hover">
           <template #trigger>
+            <n-switch size="large" :value="!isPaused" @update:value="handlePause">
+              <template #checked-icon>
+                <n-icon :component="PlayArrowRound" />
+              </template>
+              <template #unchecked-icon>
+                <n-icon :component="PauseRound" />
+              </template>
+            </n-switch>
+          </template>
+          翻译/暂停
+        </n-tooltip>
+        <n-tooltip trigger="hover">
+          <template #trigger>
             <n-switch size="large" :value="settings.keepOnTop" @update:value="handleKeepOnTop">
               <template #checked-icon>
                 <n-icon :component="LayersRound" />
@@ -341,7 +365,7 @@ async function getOpenAIConstructor() {
                 </n-icon>
               </n-button>
             </template>
-            历史记录 (H)
+            历史记录
           </n-tooltip>
           <n-tooltip trigger="hover">
             <template #trigger>
