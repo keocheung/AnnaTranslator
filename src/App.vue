@@ -31,6 +31,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useSettingsState } from "./settings";
 import { recordTranslationHistory } from "./history";
+import { getOpenAIConstructor } from "./openaiClient";
 
 const settings = useSettingsState();
 const originalText = ref("");
@@ -274,7 +275,7 @@ async function openSettingsWindow() {
     title: "Anna Translator - 设置",
     width: 560,
     height: 720,
-    alwaysOnTop: true,
+    alwaysOnTop: settings.value.keepOnTop,
     resizable: true,
     decorations: true,
     visible: true,
@@ -318,15 +319,6 @@ async function openHistoryWindow() {
 async function persistTranslationHistory(original: string, translation: string) {
   if (!translation.trim()) return;
   await recordTranslationHistory(original, translation);
-}
-
-let openAIConstructor: typeof import("openai").default | null = null;
-
-async function getOpenAIConstructor() {
-  if (openAIConstructor) return openAIConstructor;
-  const mod = await import("openai");
-  openAIConstructor = mod.default;
-  return openAIConstructor;
 }
 </script>
 
@@ -423,7 +415,11 @@ async function getOpenAIConstructor() {
                 <n-button type="primary" ghost @click="copyTranslation" :disabled="!translatedText">
                   复制译文
                 </n-button>
-                <n-button secondary @click="handleRetranslate" :disabled="!originalText || streaming">
+                <n-button
+                  secondary
+                  @click="handleRetranslate"
+                  :disabled="!originalText || streaming"
+                >
                   重新翻译
                 </n-button>
                 <n-tag v-if="streaming" type="info" round bordered>流式输出中</n-tag>

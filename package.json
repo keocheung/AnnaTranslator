@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",
+    "@vicons/fluent": "^0.13.0",
     "@vicons/material": "^0.13.0",
     "@vitejs/plugin-vue": "^5.1.2",
     "prettier": "^3.6.2",

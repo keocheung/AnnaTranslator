@@ -8,6 +8,7 @@ import {
   NDivider,
   NForm,
   NFormItem,
+  NIcon,
   NInput,
   NInputNumber,
   NSpace,
@@ -16,13 +17,18 @@ import {
   NTabPane,
   darkTheme,
   useOsTheme,
+  createDiscreteApi,
 } from "naive-ui";
+import { Sparkle24Filled } from "@vicons/fluent";
 import { useSettingsState } from "./settings";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { getOpenAIConstructor } from "./openaiClient";
 
 const settings = useSettingsState();
+const validating = ref(false);
+const { message } = createDiscreteApi(["message"]);
 
 const submitCommand = computed(
   () => `curl -X POST http://127.0.0.1:${settings.value.serverPort}/submit \\
@@ -45,6 +51,38 @@ function removeReplacementRule(index: number) {
   next.splice(index, 1);
   settings.value.replacements = next;
 }
+
+async function validateOpenAIConfig() {
+  if (!settings.value.apiKey) {
+    message.error("请先填写 OpenAI API Key");
+    return;
+  }
+
+  validating.value = true;
+  try {
+    const OpenAI = await getOpenAIConstructor();
+    const client = new OpenAI({
+      apiKey: settings.value.apiKey,
+      baseURL: settings.value.baseUrl.replace(/\/$/, "") || undefined,
+      dangerouslyAllowBrowser: true,
+    });
+
+    await client.chat.completions.create({
+      model: settings.value.model,
+      messages: [
+        { role: "system", content: "You are checking connectivity and credentials." },
+        { role: "user", content: "ping" },
+      ],
+      max_tokens: 1,
+    });
+
+    message.success("验证成功");
+  } catch (error) {
+    message.error((error as Error)?.message ?? "验证失败");
+  } finally {
+    validating.value = false;
+  }
+}
 </script>
 
 <template>
@@ -52,7 +90,7 @@ function removeReplacementRule(index: number) {
     <div class="settings-wrapper">
       <n-card class="card settings-card" :bordered="false">
         <n-tabs type="line" placement="left">
-          <n-tab-pane name="translation" label="翻译">
+          <n-tab-pane name="translation" tab="翻译">
             <n-form label-placement="top" size="medium">
               <n-form-item label="OpenAI Base URL">
                 <n-input v-model:value="settings.baseUrl" placeholder="https://api.openai.com" />
@@ -69,6 +107,21 @@ function removeReplacementRule(index: number) {
               <n-form-item label="模型">
                 <n-input v-model:value="settings.model" placeholder="gpt-4o-mini" />
               </n-form-item>
+              <n-button
+                type="primary"
+                secondary
+                :loading="validating"
+                @click="validateOpenAIConfig"
+              >
+                <template #icon>
+                  <n-icon>
+                    <Sparkle24Filled />
+                  </n-icon>
+                </template>
+                验证设置
+              </n-button>
+
+              <n-divider />
 
               <n-form-item label="翻译提示词">
                 <n-input
@@ -80,7 +133,7 @@ function removeReplacementRule(index: number) {
             </n-form>
           </n-tab-pane>
 
-          <n-tab-pane name="appearance" label="外观">
+          <n-tab-pane name="appearance" tab="外观">
             <n-form label-placement="top" size="medium">
               <n-form-item label="字体">
                 <n-input
@@ -95,7 +148,7 @@ function removeReplacementRule(index: number) {
             </n-form>
           </n-tab-pane>
 
-          <n-tab-pane name="input" label="输入">
+          <n-tab-pane name="input" tab="输入">
             <n-form-item label="监听剪贴板">
               <n-switch v-model:value="settings.monitorClipboard" />
             </n-form-item>
@@ -105,10 +158,9 @@ function removeReplacementRule(index: number) {
             <n-form-item label="本地HTTP推送示例">
               <n-code :code="submitCommand" language="bash" word-wrap class="pre-code" />
             </n-form-item>
-            <n-divider />
           </n-tab-pane>
 
-          <n-tab-pane name="preprocess" label="输入处理">
+          <n-tab-pane name="preprocess" tab="输入处理">
             <n-form label-placement="top" size="medium">
               <n-alert
                 title="按照顺序依次进行替换（Rust 正则语法）"
