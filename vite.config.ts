@@ -25,8 +25,7 @@ export default defineConfig({
         advancedChunks: {
           groups: chunkGroups.map(({ name, packages }) => ({
             name,
-            test: (id) =>
-              packages.some((pkg) => id.includes(`/node_modules/${pkg}/`)),
+            test: (id) => packages.some((pkg) => id.includes(`/node_modules/${pkg}/`)),
           })),
         },
       },

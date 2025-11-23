@@ -371,6 +371,31 @@ async function getOpenAIConstructor() {
         <n-space vertical size="large">
           <n-card class="card" size="large" :bordered="false">
             <n-space vertical size="large">
+              <div class="section-title">译文</div>
+              <div
+                style="
+                  padding: 16px;
+                  border-radius: 12px;
+                  background: #0b1727;
+                  color: #e8f0ff;
+                  min-height: 120px;
+                  white-space: pre-wrap;
+                "
+                :style="textStyle"
+              >
+                {{ translatedText || (streaming ? "正在翻译..." : "尚未有译文") }}
+              </div>
+              <n-space>
+                <n-button type="primary" ghost @click="copyTranslation" :disabled="!translatedText">
+                  复制译文
+                </n-button>
+                <n-tag v-if="streaming" type="info" round bordered>流式输出中</n-tag>
+              </n-space>
+            </n-space>
+          </n-card>
+
+          <n-card class="card" size="large" :bordered="false">
+            <n-space vertical size="large">
               <n-space align="center" justify="space-between">
                 <div class="section-title">原文</div>
                 <n-button size="tiny" tertiary @click="fillManualFromOriginal">
@@ -398,31 +423,6 @@ async function getOpenAIConstructor() {
               <n-space>
                 <n-button type="primary" @click="handleManualTranslate">翻译输入</n-button>
                 <n-button secondary @click="stopStream" :disabled="!streaming">停止流</n-button>
-              </n-space>
-            </n-space>
-          </n-card>
-
-          <n-card class="card" size="large" :bordered="false">
-            <n-space vertical size="large">
-              <div class="section-title">译文</div>
-              <div
-                style="
-                  padding: 16px;
-                  border-radius: 12px;
-                  background: #0b1727;
-                  color: #e8f0ff;
-                  min-height: 120px;
-                  white-space: pre-wrap;
-                "
-                :style="textStyle"
-              >
-                {{ translatedText || (streaming ? "正在翻译..." : "尚未有译文") }}
-              </div>
-              <n-space>
-                <n-button type="primary" ghost @click="copyTranslation" :disabled="!translatedText">
-                  复制译文
-                </n-button>
-                <n-tag v-if="streaming" type="info" round bordered>流式输出中</n-tag>
               </n-space>
             </n-space>
           </n-card>
