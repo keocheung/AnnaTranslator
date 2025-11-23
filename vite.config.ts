@@ -1,6 +1,12 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 
+const chunkGroups = [
+  { name: "ui", packages: ["naive-ui", "@vicons/material"] },
+  { name: "tauri", packages: ["@tauri-apps/api", "@tauri-apps/plugin-store"] },
+  { name: "openai", packages: ["openai"] },
+];
+
 export default defineConfig({
   plugins: [vue()],
   server: {
@@ -16,10 +22,12 @@ export default defineConfig({
     chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
-        manualChunks: {
-          ui: ["naive-ui", "@vicons/material"],
-          tauri: ["@tauri-apps/api", "@tauri-apps/plugin-store"],
-          openai: ["openai"],
+        advancedChunks: {
+          groups: chunkGroups.map(({ name, packages }) => ({
+            name,
+            test: (id) =>
+              packages.some((pkg) => id.includes(`/node_modules/${pkg}/`)),
+          })),
         },
       },
     },
