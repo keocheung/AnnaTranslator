@@ -59,7 +59,7 @@ function parseSettings(raw: string | null): Settings {
   }
 }
 
-async function loadPersistedSettings(): Promise<Settings> {
+export async function loadPersistedSettings(): Promise<Settings> {
   if (!isTauri) {
     return parseSettings(localStorage.getItem(STORAGE_KEY));
   }
@@ -74,11 +74,14 @@ async function loadPersistedSettings(): Promise<Settings> {
     console.error("Failed to load settings from store, falling back to defaults:", error);
   }
 
-  const legacy = localStorage.getItem(STORAGE_KEY);
-  if (legacy) {
-    const parsed = parseSettings(legacy);
-    await persistSettings(parsed);
-    localStorage.removeItem(STORAGE_KEY);
+  const fallback = localStorage.getItem(STORAGE_KEY);
+  if (fallback) {
+    const parsed = parseSettings(fallback);
+    try {
+      await persistSettings(parsed);
+    } catch {
+      // best-effort sync when store is unavailable
+    }
     return parsed;
   }
 
@@ -98,8 +101,9 @@ async function syncTextReplacements(rules: TextReplacementRule[]) {
 }
 
 async function persistSettings(val: Settings) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
+
   if (!isTauri) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
     return;
   }
 

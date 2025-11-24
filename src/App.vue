@@ -7,8 +7,6 @@ import {
   NCard,
   NConfigProvider,
   NFlex,
-  NFloatButton,
-  NFloatButtonGroup,
   NGradientText,
   NIcon,
   NSwitch,
@@ -18,7 +16,6 @@ import {
 } from "naive-ui";
 import {
   CloseRound,
-  ContentCopyRound,
   HistoryRound,
   LayersClearRound,
   LayersRound,
@@ -330,7 +327,7 @@ async function openHistoryWindow(event: MouseEvent) {
     title: `${t("common.appName")} - ${t("titleBar.history")}`,
     width: 640,
     height: 760,
-    alwaysOnTop: true,
+    alwaysOnTop: settings.value.keepOnTop,
     resizable: true,
     decorations: true,
     visible: true,

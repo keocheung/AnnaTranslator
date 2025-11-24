@@ -101,7 +101,9 @@ onBeforeUnmount(() => {
                     <div class="history-text">{{ entry.original }}</div>
                   </div>
                   <div class="history-block">
-                    <n-tag size="small" type="success" round>{{ t("history.translationTag") }}</n-tag>
+                    <n-tag size="small" type="success" round>{{
+                      t("history.translationTag")
+                    }}</n-tag>
                     <div class="history-text translation">{{ entry.translation }}</div>
                   </div>
                 </div>
