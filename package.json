@@ -20,7 +20,8 @@
     "highlight.js": "^11.11.1",
     "naive-ui": "^2.38.3",
     "openai": "^4.77.4",
-    "vue": "^3.5.12"
+    "vue": "^3.5.12",
+    "vue-i18n": "11"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",

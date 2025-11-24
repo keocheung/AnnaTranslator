@@ -2,6 +2,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import { invoke } from "@tauri-apps/api/core";
 import type { UnlistenFn } from "@tauri-apps/api/event";
+import { type LanguagePreference, updateLocale } from "./i18n";
 
 export type Settings = {
   baseUrl: string;
@@ -15,6 +16,7 @@ export type Settings = {
   monitorClipboard: boolean;
   openaiCompatibleInput: boolean;
   replacements: TextReplacementRule[];
+  language: LanguagePreference;
 };
 
 export const defaultSettings: Settings = {
@@ -29,6 +31,7 @@ export const defaultSettings: Settings = {
   monitorClipboard: false,
   openaiCompatibleInput: false,
   replacements: [],
+  language: "system",
 };
 
 export type TextReplacementRule = {
@@ -118,6 +121,7 @@ export function useSettingsState() {
     syncingFromStore = true;
     settings.value = await loadPersistedSettings();
     await syncTextReplacements(settings.value.replacements);
+    updateLocale(settings.value.language);
     setTimeout(() => {
       syncingFromStore = false;
     }, 0);
@@ -160,6 +164,7 @@ export function useSettingsState() {
       if (syncingFromStore) return;
       void persistSettings(val);
       void syncTextReplacements(val.replacements);
+      updateLocale(val.language);
     },
     { deep: true }
   );

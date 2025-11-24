@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   NButton,
   NButtonGroup,
@@ -35,6 +36,7 @@ import { getOpenAIConstructor } from "./openaiClient";
 import { purpleThemeOverrides } from "./theme";
 
 const settings = useSettingsState();
+const { t } = useI18n();
 const originalText = ref("");
 const translatedText = ref("");
 const streaming = ref(false);
@@ -88,7 +90,7 @@ onMounted(async () => {
     });
     unlistenFns.push(unlisten);
   } catch (error) {
-    message.error("事件监听初始化失败");
+    message.error(t("app.messages.listenerInitFailed"));
     console.error(error);
   }
 });
@@ -105,7 +107,7 @@ async function translate(text: string, options: { force?: boolean } = {}) {
   }
   const content = text.trim();
   if (!content) {
-    message.warning("没有可翻译的文本");
+    message.warning(t("app.messages.noContent"));
     return;
   }
 
@@ -128,7 +130,7 @@ async function translate(text: string, options: { force?: boolean } = {}) {
   }
 
   if (!settings.value.apiKey) {
-    message.error("请先填写 OpenAI API Key");
+    message.error(t("app.messages.missingApiKey"));
     return;
   }
 
@@ -164,7 +166,7 @@ async function translate(text: string, options: { force?: boolean } = {}) {
     shouldPersist = true;
   } catch (error: unknown) {
     if ((error as Error)?.name === "AbortError") return;
-    message.error((error as Error)?.message ?? "翻译失败");
+    message.error((error as Error)?.message ?? t("app.messages.translationFailed"));
   } finally {
     streaming.value = false;
     controller.value = null;
@@ -191,7 +193,7 @@ async function applyAlwaysOnTop(alwaysOnTop: boolean) {
   try {
     await appWindow.setAlwaysOnTop(alwaysOnTop);
   } catch (error) {
-    message.error("无法设置置顶窗口");
+    message.error(t("app.messages.alwaysOnTopFailed"));
     console.error(error);
   }
 }
@@ -216,7 +218,7 @@ function handleManualTranslate() {
 async function handleRetranslate() {
   const content = originalText.value.trim();
   if (!content) {
-    message.warning("没有可重新翻译的原文");
+    message.warning(t("app.messages.noContentForRetranslate"));
     return;
   }
   await translate(content, { force: true });
@@ -229,9 +231,9 @@ function fillManualFromOriginal() {
 async function copyTranslation() {
   try {
     await navigator.clipboard.writeText(translatedText.value);
-    message.success("译文已复制");
+    message.success(t("app.messages.translationCopied"));
   } catch (error) {
-    message.error("复制失败");
+    message.error(t("app.messages.copyFailed"));
   }
 }
 
@@ -265,7 +267,7 @@ async function syncOpenAICompatibleInput(enabled: boolean) {
 
 async function openSettingsWindow(event: MouseEvent) {
   if (!isTauri) {
-    message.info("设置窗口仅在 Tauri 应用内可用");
+    message.info(t("app.messages.settingsOnlyInApp"));
     return;
   }
 
@@ -277,7 +279,7 @@ async function openSettingsWindow(event: MouseEvent) {
 
   const settingsWindow = new WebviewWindow("settings", {
     url: "index.html#settings",
-    title: "Anna Translator - 设置",
+    title: `${t("common.appName")} - ${t("titleBar.settings")}`,
     width: 800,
     height: 600,
     alwaysOnTop: settings.value.keepOnTop,
@@ -288,7 +290,7 @@ async function openSettingsWindow(event: MouseEvent) {
 
   settingsWindow.once("tauri://error", (e) => {
     console.error("Failed to open settings window", e);
-    message.error("设置窗口打开失败");
+    message.error(t("app.messages.openSettingsFailed"));
   });
 
   event.target?.dispatchEvent(
@@ -302,7 +304,7 @@ async function openSettingsWindow(event: MouseEvent) {
 
 async function openHistoryWindow(event: MouseEvent) {
   if (!isTauri) {
-    message.info("历史窗口仅在 Tauri 应用内可用");
+    message.info(t("app.messages.historyOnlyInApp"));
     return;
   }
 
@@ -314,7 +316,7 @@ async function openHistoryWindow(event: MouseEvent) {
 
   const historyWindow = new WebviewWindow("history", {
     url: "index.html#history",
-    title: "Anna Translator - 历史",
+    title: `${t("common.appName")} - ${t("titleBar.history")}`,
     width: 640,
     height: 760,
     alwaysOnTop: true,
@@ -325,7 +327,7 @@ async function openHistoryWindow(event: MouseEvent) {
 
   historyWindow.once("tauri://error", (e) => {
     console.error("Failed to open history window", e);
-    message.error("历史窗口打开失败");
+    message.error(t("app.messages.openHistoryFailed"));
   });
 
   console.log(event.target);
@@ -349,9 +351,11 @@ async function persistTranslationHistory(original: string, translation: string) 
     <div class="title-bar" data-tauri-drag-region @mousedown="startDragging">
       <div class="title-bar__left drag-region" data-tauri-drag-region>
         <n-gradient-text class="app-title" gradient="linear-gradient(120deg, #4c83ff, #4fd1c5)">
-          Anna Translator
+          {{ t("common.appName") }}
         </n-gradient-text>
-        <n-tag size="small" type="success" bordered>监听端口 {{ settings.serverPort }}</n-tag>
+        <n-tag size="small" type="success" bordered>
+          {{ t("titleBar.listeningPort", { port: settings.serverPort }) }}
+        </n-tag>
       </div>
       <div class="title-bar__actions no-drag">
         <n-tooltip trigger="hover">
@@ -365,7 +369,7 @@ async function persistTranslationHistory(original: string, translation: string) 
               </template>
             </n-switch>
           </template>
-          翻译/暂停
+          {{ t("titleBar.translatePause") }}
         </n-tooltip>
         <n-tooltip trigger="hover">
           <template #trigger>
@@ -378,7 +382,7 @@ async function persistTranslationHistory(original: string, translation: string) 
               </template>
             </n-switch>
           </template>
-          窗口置顶
+          {{ t("titleBar.alwaysOnTop") }}
         </n-tooltip>
         <n-button-group>
           <n-tooltip trigger="hover">
@@ -395,7 +399,7 @@ async function persistTranslationHistory(original: string, translation: string) 
                 </n-icon>
               </n-button>
             </template>
-            历史记录
+            {{ t("titleBar.history") }}
           </n-tooltip>
           <n-tooltip trigger="hover">
             <template #trigger>
@@ -411,7 +415,7 @@ async function persistTranslationHistory(original: string, translation: string) 
                 </n-icon>
               </n-button>
             </template>
-            设置
+            {{ t("titleBar.settings") }}
           </n-tooltip>
           <n-tooltip trigger="hover">
             <template #trigger>
@@ -421,7 +425,7 @@ async function persistTranslationHistory(original: string, translation: string) 
                 </n-icon>
               </n-button>
             </template>
-            退出
+            {{ t("titleBar.quit") }}
           </n-tooltip>
         </n-button-group>
       </div>
@@ -431,7 +435,7 @@ async function persistTranslationHistory(original: string, translation: string) 
         <n-space vertical size="large">
           <n-card class="card" size="large" :bordered="false">
             <n-space vertical size="large">
-              <div class="section-title">译文</div>
+              <div class="section-title">{{ t("app.sections.translation") }}</div>
               <div
                 style="
                   padding: 16px;
@@ -443,20 +447,20 @@ async function persistTranslationHistory(original: string, translation: string) 
                 "
                 :style="textStyle"
               >
-                {{ translatedText || (streaming ? "正在翻译..." : "尚未有译文") }}
+                {{ translatedText || (streaming ? t("app.status.translating") : t("app.status.noTranslation")) }}
               </div>
               <n-space>
                 <n-button type="primary" ghost @click="copyTranslation" :disabled="!translatedText">
-                  复制译文
+                  {{ t("app.actions.copyTranslation") }}
                 </n-button>
                 <n-button
                   secondary
                   @click="handleRetranslate"
                   :disabled="!originalText || streaming"
                 >
-                  重新翻译
+                  {{ t("app.actions.retranslate") }}
                 </n-button>
-                <n-tag v-if="streaming" type="info" round bordered>流式输出中</n-tag>
+                <n-tag v-if="streaming" type="info" round bordered>{{ t("app.status.streaming") }}</n-tag>
               </n-space>
             </n-space>
           </n-card>
@@ -464,9 +468,9 @@ async function persistTranslationHistory(original: string, translation: string) 
           <n-card class="card" size="large" :bordered="false">
             <n-space vertical size="large">
               <n-space align="center" justify="space-between">
-                <div class="section-title">原文</div>
+                <div class="section-title">{{ t("app.sections.original") }}</div>
                 <n-button size="tiny" tertiary @click="fillManualFromOriginal">
-                  将原文填回输入
+                  {{ t("app.actions.fillFromOriginal") }}
                 </n-button>
               </n-space>
               <div
@@ -479,17 +483,21 @@ async function persistTranslationHistory(original: string, translation: string) 
                 "
                 :style="textStyle"
               >
-                {{ originalText || "等待本地 HTTP 推送 / 手动输入" }}
+                {{ originalText || t("app.status.waitingInput") }}
               </div>
               <n-input
                 v-model:value="manualInput"
                 type="textarea"
-                placeholder="手动输入以测试翻译"
+                :placeholder="t('app.placeholders.manualInput')"
                 :autosize="{ minRows: 3, maxRows: 6 }"
               />
               <n-space>
-                <n-button type="primary" @click="handleManualTranslate">翻译输入</n-button>
-                <n-button secondary @click="stopStream" :disabled="!streaming">停止流</n-button>
+                <n-button type="primary" @click="handleManualTranslate">
+                  {{ t("app.actions.translateInput") }}
+                </n-button>
+                <n-button secondary @click="stopStream" :disabled="!streaming">
+                  {{ t("app.actions.stopStream") }}
+                </n-button>
               </n-space>
             </n-space>
           </n-card>

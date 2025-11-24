@@ -12,6 +12,7 @@ import {
   NInput,
   NInputNumber,
   NMenu,
+  NSelect,
   NSpace,
   NSwitch,
   darkTheme,
@@ -23,23 +24,43 @@ import { useSettingsState } from "./settings";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { getOpenAIConstructor } from "./openaiClient";
 import { purpleThemeOverrides } from "./theme";
+import { resolveLocale } from "./i18n";
 
 const settings = useSettingsState();
+const { t } = useI18n();
 const validating = ref(false);
 const { message } = createDiscreteApi(["message"], {
   configProviderProps: {
     themeOverrides: purpleThemeOverrides,
   },
 });
-const activeMenu = ref("translation");
-const menuOptions = [
-  { label: "翻译", key: "translation" },
-  { label: "外观", key: "appearance" },
-  { label: "输入", key: "input" },
-  { label: "输入处理", key: "preprocess" },
-];
+const activeMenu = ref("general");
+const menuOptions = computed(() => [
+  { label: t("settings.menu.general"), key: "general" },
+  { label: t("settings.menu.translation"), key: "translation" },
+  { label: t("settings.menu.appearance"), key: "appearance" },
+  { label: t("settings.menu.input"), key: "input" },
+  { label: t("settings.menu.preprocess"), key: "preprocess" },
+]);
+
+const systemLocaleLabel = computed(() => {
+  const locale = resolveLocale("system");
+  const labelMap: Record<string, string> = {
+    en: "English",
+    "zh-CN": "简体中文",
+  };
+  const matched = labelMap[locale] ?? locale;
+  return t("settings.language.followSystemMatched", { language: matched });
+});
+
+const languageOptions = computed(() => [
+  { label: systemLocaleLabel.value, value: "system" },
+  { label: "English", value: "en" },
+  { label: "简体中文", value: "zh-CN" },
+]);
 const handleMenuUpdate = (key: string) => {
   activeMenu.value = key;
 };
@@ -47,7 +68,7 @@ const handleMenuUpdate = (key: string) => {
 const submitCommand = computed(
   () => `curl -X POST http://127.0.0.1:${settings.value.serverPort}/submit \\
               -H 'Content-Type: text/plain' \\
-              --data-raw '<待翻译文本>'`
+              --data-raw '${t("settings.input.payloadHint")}'`
 );
 
 const theme = computed(() => (useOsTheme().value === "dark" ? darkTheme : null));
@@ -68,7 +89,7 @@ function removeReplacementRule(index: number) {
 
 async function validateOpenAIConfig() {
   if (!settings.value.apiKey) {
-    message.error("请先填写 OpenAI API Key");
+    message.error(t("settings.translation.missingApiKey"));
     return;
   }
 
@@ -90,9 +111,9 @@ async function validateOpenAIConfig() {
       max_tokens: 1,
     });
 
-    message.success("验证成功");
+    message.success(t("settings.translation.validateSuccess"));
   } catch (error) {
-    message.error((error as Error)?.message ?? "验证失败");
+    message.error((error as Error)?.message ?? t("settings.translation.validateFailed"));
   } finally {
     validating.value = false;
   }
@@ -113,12 +134,23 @@ async function validateOpenAIConfig() {
             />
           </div>
           <div class="settings-content">
-            <div v-if="activeMenu === 'translation'" class="settings-pane">
+            <div v-if="activeMenu === 'general'" class="settings-pane">
               <n-form label-placement="top" size="medium">
-                <n-form-item label="OpenAI Base URL">
+                <n-form-item :label="t('settings.language.title')">
+                  <n-select
+                    v-model:value="settings.language"
+                    :options="languageOptions"
+                    :consistent-menu-width="false"
+                  />
+                </n-form-item>
+              </n-form>
+            </div>
+            <div v-else-if="activeMenu === 'translation'" class="settings-pane">
+              <n-form label-placement="top" size="medium">
+                <n-form-item :label="t('settings.translation.baseUrl')">
                   <n-input v-model:value="settings.baseUrl" placeholder="https://api.openai.com" />
                 </n-form-item>
-                <n-form-item label="OpenAI API Key">
+                <n-form-item :label="t('settings.translation.apiKey')">
                   <n-input
                     v-model:value="settings.apiKey"
                     placeholder="sk-..."
@@ -127,7 +159,7 @@ async function validateOpenAIConfig() {
                     show-password-on="click"
                   />
                 </n-form-item>
-                <n-form-item label="模型">
+                <n-form-item :label="t('settings.translation.model')">
                   <n-input v-model:value="settings.model" placeholder="gpt-4o-mini" />
                 </n-form-item>
                 <n-button
@@ -141,12 +173,12 @@ async function validateOpenAIConfig() {
                       <Sparkle24Filled />
                     </n-icon>
                   </template>
-                  验证设置
+                  {{ t("settings.translation.validate") }}
                 </n-button>
 
                 <n-divider />
 
-                <n-form-item label="翻译提示词">
+                <n-form-item :label="t('settings.translation.prompt')">
                   <n-input
                     v-model:value="settings.prompt"
                     type="textarea"
@@ -158,27 +190,27 @@ async function validateOpenAIConfig() {
 
             <div v-else-if="activeMenu === 'appearance'" class="settings-pane">
               <n-form label-placement="top" size="medium">
-                <n-form-item label="字体">
+                <n-form-item :label="t('settings.appearance.fontFamily')">
                   <n-input
                     v-model:value="settings.fontFamily"
-                    placeholder="自定义字体栈"
+                    :placeholder="t('settings.appearance.fontFamilyPlaceholder')"
                     class="code"
                   />
                 </n-form-item>
-                <n-form-item label="字号">
+                <n-form-item :label="t('settings.appearance.fontSize')">
                   <n-input-number v-model:value="settings.fontSize" :min="12" :max="32" />
                 </n-form-item>
               </n-form>
             </div>
 
             <div v-else-if="activeMenu === 'input'" class="settings-pane">
-              <n-form-item label="监听剪贴板">
+              <n-form-item :label="t('settings.input.monitorClipboard')">
                 <n-switch v-model:value="settings.monitorClipboard" />
               </n-form-item>
-              <n-form-item label="OpenAI兼容输入（/v1/chat/completions）">
+              <n-form-item :label="t('settings.input.openaiCompatibleInput')">
                 <n-switch v-model:value="settings.openaiCompatibleInput" />
               </n-form-item>
-              <n-form-item label="本地HTTP推送示例">
+              <n-form-item :label="t('settings.input.httpExample')">
                 <n-code :code="submitCommand" language="bash" word-wrap class="pre-code" />
               </n-form-item>
             </div>
@@ -186,16 +218,16 @@ async function validateOpenAIConfig() {
             <div v-else-if="activeMenu === 'preprocess'" class="settings-pane">
               <n-form label-placement="top" size="medium">
                 <n-alert
-                  title="按照顺序依次进行替换（Rust 正则语法）"
+                  :title="t('settings.preprocess.tipTitle')"
                   type="info"
                   class="preprocess-tip"
                   :closable="false"
                 >
-                  示例：使用<code>第(\\d+)个</code>替换为<code>$1. </code>可将“第12个”转为“12. ”。
+                  {{ t("settings.preprocess.tipExample") }}
                 </n-alert>
                 <div class="replacement-rules">
                   <div v-if="!settings.replacements.length" class="rules-placeholder">
-                    暂无规则，点击下方“新增规则”开始配置。
+                    {{ t("settings.preprocess.placeholder") }}
                   </div>
                   <n-card
                     v-for="(rule, index) in settings.replacements"
@@ -205,14 +237,23 @@ async function validateOpenAIConfig() {
                     :bordered="true"
                   >
                     <n-space vertical size="small">
-                      <n-form-item label="正则表达式">
-                        <n-input v-model:value="rule.pattern" placeholder="例如：第(\\d+)个" />
+                      <n-form-item :label="t('settings.preprocess.pattern')">
+                        <n-input
+                          v-model:value="rule.pattern"
+                          :placeholder="t('settings.preprocess.patternPlaceholder')"
+                        />
                       </n-form-item>
-                      <n-form-item label="替换为">
-                        <n-input v-model:value="rule.replacement" placeholder="$1. " />
+                      <n-form-item :label="t('settings.preprocess.replacement')">
+                        <n-input
+                          v-model:value="rule.replacement"
+                          :placeholder="t('settings.preprocess.replacementPlaceholder')"
+                        />
                       </n-form-item>
-                      <n-form-item label="Flags（可选）">
-                        <n-input v-model:value="rule.flags" placeholder="例如：im" />
+                      <n-form-item :label="t('settings.preprocess.flags')">
+                        <n-input
+                          v-model:value="rule.flags"
+                          :placeholder="t('settings.preprocess.flagsPlaceholder')"
+                        />
                       </n-form-item>
                       <div class="rule-actions">
                         <n-button
@@ -221,14 +262,16 @@ async function validateOpenAIConfig() {
                           size="small"
                           @click="removeReplacementRule(index)"
                         >
-                          删除
+                          {{ t("settings.preprocess.delete") }}
                         </n-button>
                       </div>
                     </n-space>
                   </n-card>
                 </div>
                 <n-space>
-                  <n-button tertiary type="primary" @click="addReplacementRule">新增规则</n-button>
+                  <n-button tertiary type="primary" @click="addReplacementRule">
+                    {{ t("settings.preprocess.addRule") }}
+                  </n-button>
                 </n-space>
               </n-form>
             </div>
