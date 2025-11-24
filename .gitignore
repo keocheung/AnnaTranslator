@@ -6,7 +6,6 @@ dist-ssr
 .vscode/*
 !.vscode/settings.json
 *.log
-*.lock
 *.tmp
 .DS_Store
 
