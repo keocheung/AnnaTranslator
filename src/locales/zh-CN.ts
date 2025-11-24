@@ -31,6 +31,7 @@ export default {
     },
     actions: {
       copyTranslation: "复制译文",
+      copyOriginal: "复制原文",
       retranslate: "重新翻译",
       fillFromOriginal: "将原文填回输入",
       translateInput: "翻译输入",

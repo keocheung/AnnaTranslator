@@ -31,6 +31,7 @@ export default {
     },
     actions: {
       copyTranslation: "Copy translation",
+      copyOriginal: "Copy original text",
       retranslate: "Retranslate",
       fillFromOriginal: "Fill back original",
       translateInput: "Translate input",

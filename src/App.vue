@@ -6,12 +6,11 @@ import {
   NButtonGroup,
   NCard,
   NConfigProvider,
+  NFlex,
+  NFloatButton,
+  NFloatButtonGroup,
   NGradientText,
   NIcon,
-  NInput,
-  NLayout,
-  NLayoutContent,
-  NSpace,
   NSwitch,
   NTag,
   NTooltip,
@@ -19,12 +18,15 @@ import {
 } from "naive-ui";
 import {
   CloseRound,
+  ContentCopyRound,
   HistoryRound,
   LayersClearRound,
   LayersRound,
   PauseRound,
   PlayArrowRound,
+  RefreshRound,
   SettingsRound,
+  StopRound,
 } from "@vicons/material";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -237,6 +239,15 @@ async function copyTranslation() {
   }
 }
 
+async function copyOriginal() {
+  try {
+    await navigator.clipboard.writeText(originalText.value);
+    message.success(t("app.messages.originalCopied"));
+  } catch (error) {
+    message.error(t("app.messages.copyFailed"));
+  }
+}
+
 async function startDragging(event: MouseEvent) {
   const target = event.target as HTMLElement | null;
   if (target?.closest(".no-drag")) return;
@@ -430,90 +441,139 @@ async function persistTranslationHistory(original: string, translation: string) 
         </n-button-group>
       </div>
     </div>
-    <n-layout content-style="padding: 12px 18px 28px 18px;">
-      <n-layout-content>
-        <n-space vertical size="large">
-          <n-card class="card" size="large" :bordered="false">
-            <n-space vertical size="large">
-              <div class="section-title">{{ t("app.sections.translation") }}</div>
-              <div
-                style="
-                  padding: 16px;
-                  border-radius: 12px;
-                  background: #0b1727;
-                  color: #e8f0ff;
-                  min-height: 120px;
-                  white-space: pre-wrap;
-                "
-                :style="textStyle"
-              >
-                {{ translatedText || (streaming ? t("app.status.translating") : t("app.status.noTranslation")) }}
-              </div>
-              <n-space>
-                <n-button type="primary" ghost @click="copyTranslation" :disabled="!translatedText">
-                  {{ t("app.actions.copyTranslation") }}
-                </n-button>
-                <n-button
-                  secondary
-                  @click="handleRetranslate"
-                  :disabled="!originalText || streaming"
-                >
-                  {{ t("app.actions.retranslate") }}
-                </n-button>
-                <n-tag v-if="streaming" type="info" round bordered>{{ t("app.status.streaming") }}</n-tag>
-              </n-space>
-            </n-space>
-          </n-card>
+    <n-card class="card" size="large" :bordered="false">
+      <n-flex vertical size="large">
+        <div
+          style="
+            padding: 16px;
+            background: #0b1727;
+            color: #e8f0ff;
+            min-height: 120px;
+            white-space: pre-wrap;
+          "
+          :style="textStyle"
+        >
+          {{
+            translatedText ||
+            (streaming ? t("app.status.translating") : t("app.status.noTranslation"))
+          }}
+          <n-float-button-group :right="16" :bottom="16" spacing="8">
+            <n-flex>
+              <n-tooltip trigger="hover">
+                <template #trigger>
+                  <n-float-button
+                    type="primary"
+                    ghost
+                    @click="copyTranslation"
+                    :disabled="!translatedText"
+                  >
+                    <n-icon>
+                      <ContentCopyRound />
+                    </n-icon>
+                  </n-float-button>
+                </template>
+                {{ t("app.actions.copyTranslation") }}
+              </n-tooltip>
+              <n-tooltip trigger="hover">
+                <template #trigger>
+                  <n-float-button
+                    secondary
+                    @click="handleRetranslate"
+                    :disabled="!originalText || streaming"
+                  >
+                    <n-icon>
+                      <RefreshRound />
+                    </n-icon>
+                  </n-float-button>
+                </template>
+                {{ t("app.actions.retranslate") }}
+              </n-tooltip>
+            </n-flex>
+          </n-float-button-group>
+        </div>
+      </n-flex>
+    </n-card>
 
-          <n-card class="card" size="large" :bordered="false">
-            <n-space vertical size="large">
-              <n-space align="center" justify="space-between">
-                <div class="section-title">{{ t("app.sections.original") }}</div>
-                <n-button size="tiny" tertiary @click="fillManualFromOriginal">
-                  {{ t("app.actions.fillFromOriginal") }}
-                </n-button>
-              </n-space>
-              <div
-                style="
-                  padding: 12px 14px;
-                  border-radius: 12px;
-                  background: #f5f7fb;
-                  min-height: 80px;
-                  white-space: pre-wrap;
-                "
-                :style="textStyle"
-              >
-                {{ originalText || t("app.status.waitingInput") }}
-              </div>
-              <n-input
-                v-model:value="manualInput"
-                type="textarea"
-                :placeholder="t('app.placeholders.manualInput')"
-                :autosize="{ minRows: 3, maxRows: 6 }"
-              />
-              <n-space>
-                <n-button type="primary" @click="handleManualTranslate">
-                  {{ t("app.actions.translateInput") }}
-                </n-button>
-                <n-button secondary @click="stopStream" :disabled="!streaming">
-                  {{ t("app.actions.stopStream") }}
-                </n-button>
-              </n-space>
-            </n-space>
-          </n-card>
-        </n-space>
-      </n-layout-content>
-    </n-layout>
+    <n-card class="card" size="large" :bordered="false">
+      <n-flex vertical size="large">
+        <div
+          style="padding: 12px 14px; background: #f5f7fb; min-height: 120px; white-space: pre-wrap"
+          :style="textStyle"
+        >
+          {{ originalText || t("app.status.waitingInput") }}
+        </div>
+
+        <n-float-button-group :right="16" :bottom="16" spacing="8">
+          <n-flex>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-float-button
+                  type="primary"
+                  ghost
+                  @click="copyOriginal"
+                  :disabled="!originalText"
+                >
+                  <n-icon>
+                    <ContentCopyRound />
+                  </n-icon>
+                </n-float-button>
+              </template>
+              {{ t("app.actions.copyOriginal") }}
+            </n-tooltip>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-float-button secondary @click="stopStream" :disabled="!streaming">
+                  <n-icon>
+                    <StopRound />
+                  </n-icon>
+                </n-float-button>
+              </template>
+              {{ t("app.actions.stopStream") }}
+            </n-tooltip>
+          </n-flex>
+        </n-float-button-group>
+        <!-- <n-input
+          v-model:value="manualInput"
+          type="textarea"
+          :placeholder="t('app.placeholders.manualInput')"
+          :autosize="{ minRows: 3, maxRows: 6 }"
+        />
+        <n-flex>
+          <n-button type="primary" @click="handleManualTranslate">
+            {{ t("app.actions.translateInput") }}
+          </n-button>
+          <n-button secondary @click="stopStream" :disabled="!streaming">
+            {{ t("app.actions.stopStream") }}
+          </n-button>
+        </n-flex> -->
+      </n-flex>
+    </n-card>
   </n-config-provider>
 </template>
 <style>
+html,
+body {
+  overscroll-behavior: none;
+}
+
 .main-button {
+  font-size: 20px;
+}
+
+.n-card > .n-card__content:first-child,
+.n-card > .n-card__content {
+  padding: 0;
+}
+
+.n-float-button {
   font-size: 20px;
 }
 
 /* Use default arrow cursor for interactive Naive UI components */
 .n-button,
 .n-button *,
+.n-float-button,
+.n-float-button *,
 .n-switch,
 .n-switch *,
 .n-tag,

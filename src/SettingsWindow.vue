@@ -8,6 +8,7 @@ import {
   NDivider,
   NForm,
   NFormItem,
+  NFlex,
   NIcon,
   NInput,
   NInputNumber,
@@ -19,7 +20,7 @@ import {
   useOsTheme,
   createDiscreteApi,
 } from "naive-ui";
-import { Sparkle24Filled } from "@vicons/fluent";
+import { Globe24Regular, Sparkle24Filled } from "@vicons/fluent";
 import { useSettingsState } from "./settings";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
@@ -134,147 +135,157 @@ async function validateOpenAIConfig() {
             />
           </div>
           <div class="settings-content">
-            <div v-if="activeMenu === 'general'" class="settings-pane">
-              <n-form label-placement="top" size="medium">
-                <n-form-item :label="t('settings.language.title')">
+            <n-flex>
+              <div v-if="activeMenu === 'general'" class="settings-pane">
+                <n-flex align="center" :wrap="false" :size="20">
+                  <n-flex align="center" :size="4">
+                    <n-icon>
+                      <Globe24Regular />
+                    </n-icon>
+                    <span>{{ t("settings.language.title") }}</span>
+                  </n-flex>
                   <n-select
                     v-model:value="settings.language"
                     :options="languageOptions"
                     :consistent-menu-width="false"
+                    style="width: 50%"
                   />
-                </n-form-item>
-              </n-form>
-            </div>
-            <div v-else-if="activeMenu === 'translation'" class="settings-pane">
-              <n-form label-placement="top" size="medium">
-                <n-form-item :label="t('settings.translation.baseUrl')">
-                  <n-input v-model:value="settings.baseUrl" placeholder="https://api.openai.com" />
-                </n-form-item>
-                <n-form-item :label="t('settings.translation.apiKey')">
-                  <n-input
-                    v-model:value="settings.apiKey"
-                    placeholder="sk-..."
-                    type="password"
-                    class="code"
-                    show-password-on="click"
-                  />
-                </n-form-item>
-                <n-form-item :label="t('settings.translation.model')">
-                  <n-input v-model:value="settings.model" placeholder="gpt-4o-mini" />
-                </n-form-item>
-                <n-button
-                  type="primary"
-                  secondary
-                  :loading="validating"
-                  @click="validateOpenAIConfig"
-                >
-                  <template #icon>
-                    <n-icon>
-                      <Sparkle24Filled />
-                    </n-icon>
-                  </template>
-                  {{ t("settings.translation.validate") }}
-                </n-button>
-
-                <n-divider />
-
-                <n-form-item :label="t('settings.translation.prompt')">
-                  <n-input
-                    v-model:value="settings.prompt"
-                    type="textarea"
-                    :autosize="{ minRows: 2, maxRows: 6 }"
-                  />
-                </n-form-item>
-              </n-form>
-            </div>
-
-            <div v-else-if="activeMenu === 'appearance'" class="settings-pane">
-              <n-form label-placement="top" size="medium">
-                <n-form-item :label="t('settings.appearance.fontFamily')">
-                  <n-input
-                    v-model:value="settings.fontFamily"
-                    :placeholder="t('settings.appearance.fontFamilyPlaceholder')"
-                    class="code"
-                  />
-                </n-form-item>
-                <n-form-item :label="t('settings.appearance.fontSize')">
-                  <n-input-number v-model:value="settings.fontSize" :min="12" :max="32" />
-                </n-form-item>
-              </n-form>
-            </div>
-
-            <div v-else-if="activeMenu === 'input'" class="settings-pane">
-              <n-form-item :label="t('settings.input.monitorClipboard')">
-                <n-switch v-model:value="settings.monitorClipboard" />
-              </n-form-item>
-              <n-form-item :label="t('settings.input.openaiCompatibleInput')">
-                <n-switch v-model:value="settings.openaiCompatibleInput" />
-              </n-form-item>
-              <n-form-item :label="t('settings.input.httpExample')">
-                <n-code :code="submitCommand" language="bash" word-wrap class="pre-code" />
-              </n-form-item>
-            </div>
-
-            <div v-else-if="activeMenu === 'preprocess'" class="settings-pane">
-              <n-form label-placement="top" size="medium">
-                <n-alert
-                  :title="t('settings.preprocess.tipTitle')"
-                  type="info"
-                  class="preprocess-tip"
-                  :closable="false"
-                >
-                  {{ t("settings.preprocess.tipExample") }}
-                </n-alert>
-                <div class="replacement-rules">
-                  <div v-if="!settings.replacements.length" class="rules-placeholder">
-                    {{ t("settings.preprocess.placeholder") }}
-                  </div>
-                  <n-card
-                    v-for="(rule, index) in settings.replacements"
-                    :key="index"
-                    size="small"
-                    class="rule-card"
-                    :bordered="true"
+                </n-flex>
+              </div>
+              <div v-else-if="activeMenu === 'translation'" class="settings-pane">
+                <n-form label-placement="top" size="medium">
+                  <n-form-item :label="t('settings.translation.baseUrl')">
+                    <n-input
+                      v-model:value="settings.baseUrl"
+                      placeholder="https://api.openai.com"
+                    />
+                  </n-form-item>
+                  <n-form-item :label="t('settings.translation.apiKey')">
+                    <n-input
+                      v-model:value="settings.apiKey"
+                      placeholder="sk-..."
+                      type="password"
+                      class="code"
+                      show-password-on="click"
+                    />
+                  </n-form-item>
+                  <n-form-item :label="t('settings.translation.model')">
+                    <n-input v-model:value="settings.model" placeholder="gpt-4o-mini" />
+                  </n-form-item>
+                  <n-button
+                    type="primary"
+                    secondary
+                    :loading="validating"
+                    @click="validateOpenAIConfig"
                   >
-                    <n-space vertical size="small">
-                      <n-form-item :label="t('settings.preprocess.pattern')">
-                        <n-input
-                          v-model:value="rule.pattern"
-                          :placeholder="t('settings.preprocess.patternPlaceholder')"
-                        />
-                      </n-form-item>
-                      <n-form-item :label="t('settings.preprocess.replacement')">
-                        <n-input
-                          v-model:value="rule.replacement"
-                          :placeholder="t('settings.preprocess.replacementPlaceholder')"
-                        />
-                      </n-form-item>
-                      <n-form-item :label="t('settings.preprocess.flags')">
-                        <n-input
-                          v-model:value="rule.flags"
-                          :placeholder="t('settings.preprocess.flagsPlaceholder')"
-                        />
-                      </n-form-item>
-                      <div class="rule-actions">
-                        <n-button
-                          text
-                          type="error"
-                          size="small"
-                          @click="removeReplacementRule(index)"
-                        >
-                          {{ t("settings.preprocess.delete") }}
-                        </n-button>
-                      </div>
-                    </n-space>
-                  </n-card>
-                </div>
-                <n-space>
-                  <n-button tertiary type="primary" @click="addReplacementRule">
-                    {{ t("settings.preprocess.addRule") }}
+                    <template #icon>
+                      <n-icon>
+                        <Sparkle24Filled />
+                      </n-icon>
+                    </template>
+                    {{ t("settings.translation.validate") }}
                   </n-button>
-                </n-space>
-              </n-form>
-            </div>
+
+                  <n-divider />
+
+                  <n-form-item :label="t('settings.translation.prompt')">
+                    <n-input
+                      v-model:value="settings.prompt"
+                      type="textarea"
+                      :autosize="{ minRows: 2, maxRows: 6 }"
+                    />
+                  </n-form-item>
+                </n-form>
+              </div>
+
+              <div v-else-if="activeMenu === 'appearance'" class="settings-pane">
+                <n-form label-placement="top" size="medium">
+                  <n-form-item :label="t('settings.appearance.fontFamily')">
+                    <n-input
+                      v-model:value="settings.fontFamily"
+                      :placeholder="t('settings.appearance.fontFamilyPlaceholder')"
+                      class="code"
+                    />
+                  </n-form-item>
+                  <n-form-item :label="t('settings.appearance.fontSize')">
+                    <n-input-number v-model:value="settings.fontSize" :min="12" :max="32" />
+                  </n-form-item>
+                </n-form>
+              </div>
+
+              <div v-else-if="activeMenu === 'input'" class="settings-pane">
+                <n-form-item :label="t('settings.input.monitorClipboard')">
+                  <n-switch v-model:value="settings.monitorClipboard" />
+                </n-form-item>
+                <n-form-item :label="t('settings.input.openaiCompatibleInput')">
+                  <n-switch v-model:value="settings.openaiCompatibleInput" />
+                </n-form-item>
+                <n-form-item :label="t('settings.input.httpExample')">
+                  <n-code :code="submitCommand" language="bash" word-wrap class="pre-code" />
+                </n-form-item>
+              </div>
+
+              <div v-else-if="activeMenu === 'preprocess'" class="settings-pane">
+                <n-form label-placement="top" size="medium">
+                  <n-alert
+                    :title="t('settings.preprocess.tipTitle')"
+                    type="info"
+                    class="preprocess-tip"
+                    :closable="false"
+                  >
+                    {{ t("settings.preprocess.tipExample") }}
+                  </n-alert>
+                  <div class="replacement-rules">
+                    <div v-if="!settings.replacements.length" class="rules-placeholder">
+                      {{ t("settings.preprocess.placeholder") }}
+                    </div>
+                    <n-card
+                      v-for="(rule, index) in settings.replacements"
+                      :key="index"
+                      size="small"
+                      class="rule-card"
+                      :bordered="true"
+                    >
+                      <n-space vertical size="small">
+                        <n-form-item :label="t('settings.preprocess.pattern')">
+                          <n-input
+                            v-model:value="rule.pattern"
+                            :placeholder="t('settings.preprocess.patternPlaceholder')"
+                          />
+                        </n-form-item>
+                        <n-form-item :label="t('settings.preprocess.replacement')">
+                          <n-input
+                            v-model:value="rule.replacement"
+                            :placeholder="t('settings.preprocess.replacementPlaceholder')"
+                          />
+                        </n-form-item>
+                        <n-form-item :label="t('settings.preprocess.flags')">
+                          <n-input
+                            v-model:value="rule.flags"
+                            :placeholder="t('settings.preprocess.flagsPlaceholder')"
+                          />
+                        </n-form-item>
+                        <div class="rule-actions">
+                          <n-button
+                            text
+                            type="error"
+                            size="small"
+                            @click="removeReplacementRule(index)"
+                          >
+                            {{ t("settings.preprocess.delete") }}
+                          </n-button>
+                        </div>
+                      </n-space>
+                    </n-card>
+                  </div>
+                  <n-space>
+                    <n-button tertiary type="primary" @click="addReplacementRule">
+                      {{ t("settings.preprocess.addRule") }}
+                    </n-button>
+                  </n-space>
+                </n-form>
+              </div>
+            </n-flex>
           </div>
         </div>
       </n-card>
@@ -282,6 +293,11 @@ async function validateOpenAIConfig() {
   </n-config-provider>
 </template>
 <style>
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   text-autospace: normal;
 }
@@ -405,6 +421,9 @@ body {
 .n-button *,
 .n-switch,
 .n-switch *,
+.n-select,
+.n-select *,
+.n-base-select-option,
 .n-tag,
 .n-tag *,
 .n-menu,
