@@ -385,9 +385,10 @@ async function persistTranslationHistory(original: string, translation: string) 
             <template #trigger>
               <n-button
                 circle
-                class="main-button"
+                tertiary
                 :focusable="false"
                 @click="openHistoryWindow($event)"
+                class="main-button"
               >
                 <n-icon>
                   <HistoryRound />
@@ -400,9 +401,10 @@ async function persistTranslationHistory(original: string, translation: string) 
             <template #trigger>
               <n-button
                 circle
-                class="main-button"
+                tertiary
                 :focusable="false"
                 @click="openSettingsWindow($event)"
+                class="main-button"
               >
                 <n-icon>
                   <SettingsRound />
@@ -413,7 +415,7 @@ async function persistTranslationHistory(original: string, translation: string) 
           </n-tooltip>
           <n-tooltip trigger="hover">
             <template #trigger>
-              <n-button circle class="main-button" @click="appWindow.close()">
+              <n-button circle tertiary type="error" @click="appWindow.close()" class="main-button">
                 <n-icon>
                   <CloseRound />
                 </n-icon>
