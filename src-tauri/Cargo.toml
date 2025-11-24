@@ -12,7 +12,7 @@ devtools = ["tauri/devtools"]
 tauri-build = { version = "2.0.0", features = [] }
 
 [dependencies]
-tauri = { version = "2.0.0", features = [] }
+tauri = { version = "2.9.0", features = [] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum = "0.7"
 serde = { version = "1", features = ["derive"] }
