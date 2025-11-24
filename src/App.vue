@@ -263,7 +263,7 @@ async function syncOpenAICompatibleInput(enabled: boolean) {
   }
 }
 
-async function openSettingsWindow() {
+async function openSettingsWindow(event: MouseEvent) {
   if (!isTauri) {
     message.info("设置窗口仅在 Tauri 应用内可用");
     return;
@@ -290,9 +290,17 @@ async function openSettingsWindow() {
     console.error("Failed to open settings window", e);
     message.error("设置窗口打开失败");
   });
+
+  event.target?.dispatchEvent(
+    new MouseEvent("mouseleave", {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+    })
+  );
 }
 
-async function openHistoryWindow() {
+async function openHistoryWindow(event: MouseEvent) {
   if (!isTauri) {
     message.info("历史窗口仅在 Tauri 应用内可用");
     return;
@@ -319,6 +327,15 @@ async function openHistoryWindow() {
     console.error("Failed to open history window", e);
     message.error("历史窗口打开失败");
   });
+
+  console.log(event.target);
+  event.target?.dispatchEvent(
+    new MouseEvent("mouseleave", {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+    })
+  );
 }
 
 async function persistTranslationHistory(original: string, translation: string) {
@@ -366,7 +383,12 @@ async function persistTranslationHistory(original: string, translation: string) 
         <n-button-group>
           <n-tooltip trigger="hover">
             <template #trigger>
-              <n-button circle class="main-button" @click="openHistoryWindow">
+              <n-button
+                circle
+                class="main-button"
+                :focusable="false"
+                @click="openHistoryWindow($event)"
+              >
                 <n-icon>
                   <HistoryRound />
                 </n-icon>
@@ -376,7 +398,12 @@ async function persistTranslationHistory(original: string, translation: string) 
           </n-tooltip>
           <n-tooltip trigger="hover">
             <template #trigger>
-              <n-button circle class="main-button" @click="openSettingsWindow">
+              <n-button
+                circle
+                class="main-button"
+                :focusable="false"
+                @click="openSettingsWindow($event)"
+              >
                 <n-icon>
                   <SettingsRound />
                 </n-icon>
