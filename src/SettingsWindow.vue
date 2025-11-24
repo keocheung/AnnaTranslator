@@ -24,10 +24,15 @@ import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import { computed, ref } from "vue";
 import { getOpenAIConstructor } from "./openaiClient";
+import { purpleThemeOverrides } from "./theme";
 
 const settings = useSettingsState();
 const validating = ref(false);
-const { message } = createDiscreteApi(["message"]);
+const { message } = createDiscreteApi(["message"], {
+  configProviderProps: {
+    themeOverrides: purpleThemeOverrides,
+  },
+});
 const activeMenu = ref("translation");
 const menuOptions = [
   { label: "翻译", key: "translation" },
@@ -95,7 +100,7 @@ async function validateOpenAIConfig() {
 </script>
 
 <template>
-  <n-config-provider :theme="theme" :hljs="hljs">
+  <n-config-provider :theme="theme" :hljs="hljs" :theme-overrides="purpleThemeOverrides">
     <div class="settings-wrapper">
       <n-card class="card settings-card" :bordered="false">
         <div class="settings-layout">
@@ -266,7 +271,7 @@ body {
 .settings-layout {
   flex: 1;
   display: flex;
-  gap: 24px;
+  gap: 20px;
   align-items: stretch;
   overflow: hidden;
 }
@@ -282,18 +287,28 @@ body {
   padding: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .settings-menu-pane {
-    background-color: rgba(255, 255, 255, 0.06);
-  }
+.settings-content {
+  padding-left: 4px;
 }
 
 .settings-menu {
   width: 100%;
+  --n-item-color-hover: rgba(0, 0, 0, 0.08);
 }
 
-.n-menu .n-menu-item-content::before {
+.settings-menu .n-menu-item-content::before {
   border-radius: 8px;
+  --n-item-color-hover: rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-menu-pane {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .settings-menu .n-menu-item-content::before {
+    --n-item-color-hover: rgba(255, 255, 255, 0.187);
+  }
 }
 
 .settings-content {
@@ -340,5 +355,17 @@ body {
 .rules-placeholder {
   color: var(--n-text-color-3);
   padding: 6px 2px;
+}
+
+/* Use default arrow cursor for Naive UI interactive elements */
+.n-button,
+.n-button *,
+.n-switch,
+.n-switch *,
+.n-tag,
+.n-tag *,
+.n-menu,
+.n-menu * {
+  cursor: default !important;
 }
 </style>

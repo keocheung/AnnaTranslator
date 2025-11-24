@@ -19,6 +19,7 @@ import {
   listenTranslationHistoryUpdates,
   type TranslationHistoryEntry,
 } from "./history";
+import { purpleThemeOverrides } from "./theme";
 
 const entries = ref<TranslationHistoryEntry[]>([]);
 const loading = ref(false);
@@ -65,7 +66,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <n-config-provider>
+  <n-config-provider :theme-overrides="purpleThemeOverrides">
     <div class="title-bar" data-tauri-drag-region @mousedown="startDragging">
       <div class="title-bar__left drag-region" data-tauri-drag-region>
         <n-gradient-text class="app-title" gradient="linear-gradient(110deg, #0ea5e9, #6366f1)">
@@ -191,5 +192,16 @@ onBeforeUnmount(() => {
 
 .empty-subtitle {
   font-size: 13px;
+}
+
+:global(.n-button),
+:global(.n-button *),
+:global(.n-switch),
+:global(.n-switch *),
+:global(.n-tag),
+:global(.n-tag *),
+:global(.n-menu),
+:global(.n-menu *) {
+  cursor: default !important;
 }
 </style>

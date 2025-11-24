@@ -32,13 +32,18 @@ import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useSettingsState } from "./settings";
 import { recordTranslationHistory } from "./history";
 import { getOpenAIConstructor } from "./openaiClient";
+import { purpleThemeOverrides } from "./theme";
 
 const settings = useSettingsState();
 const originalText = ref("");
 const translatedText = ref("");
 const streaming = ref(false);
 const manualInput = ref("");
-const { message } = createDiscreteApi(["message"]);
+const { message } = createDiscreteApi(["message"], {
+  configProviderProps: {
+    themeOverrides: purpleThemeOverrides,
+  },
+});
 const unlistenFns: UnlistenFn[] = [];
 const controller = ref<AbortController | null>(null);
 const appWindow = getCurrentWindow();
@@ -323,7 +328,7 @@ async function persistTranslationHistory(original: string, translation: string) 
 </script>
 
 <template>
-  <n-config-provider>
+  <n-config-provider :theme-overrides="purpleThemeOverrides">
     <div class="title-bar" data-tauri-drag-region @mousedown="startDragging">
       <div class="title-bar__left drag-region" data-tauri-drag-region>
         <n-gradient-text class="app-title" gradient="linear-gradient(120deg, #4c83ff, #4fd1c5)">
@@ -467,5 +472,17 @@ async function persistTranslationHistory(original: string, translation: string) 
 <style>
 .main-button {
   font-size: 20px;
+}
+
+/* Use default arrow cursor for interactive Naive UI components */
+.n-button,
+.n-button *,
+.n-switch,
+.n-switch *,
+.n-tag,
+.n-tag *,
+.n-menu,
+.n-menu * {
+  cursor: default !important;
 }
 </style>
