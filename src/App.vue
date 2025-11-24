@@ -273,8 +273,8 @@ async function openSettingsWindow() {
   const settingsWindow = new WebviewWindow("settings", {
     url: "index.html#settings",
     title: "Anna Translator - 设置",
-    width: 560,
-    height: 720,
+    width: 800,
+    height: 600,
     alwaysOnTop: settings.value.keepOnTop,
     resizable: true,
     decorations: true,

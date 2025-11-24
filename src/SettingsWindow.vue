@@ -186,7 +186,7 @@ async function validateOpenAIConfig() {
                   class="preprocess-tip"
                   :closable="false"
                 >
-                  示例：使用 <code>第(\\d+)个</code> 替换为 <code>$1. </code> 可将“第12个”转为“12. ”。
+                  示例：使用<code>第(\\d+)个</code>替换为<code>$1. </code>可将“第12个”转为“12. ”。
                 </n-alert>
                 <div class="replacement-rules">
                   <div v-if="!settings.replacements.length" class="rules-placeholder">
@@ -290,6 +290,10 @@ body {
 
 .settings-menu {
   width: 100%;
+}
+
+.n-menu .n-menu-item-content::before {
+  border-radius: 8px;
 }
 
 .settings-content {
