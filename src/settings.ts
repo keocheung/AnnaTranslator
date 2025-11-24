@@ -27,7 +27,7 @@ export const defaultSettings: Settings = {
   fontFamily: '"Noto Sans CJK SC", "Noto Sans SC", sans-serif',
   fontSize: 18,
   serverPort: 17889,
-  keepOnTop: true,
+  keepOnTop: false,
   monitorClipboard: false,
   openaiCompatibleInput: false,
   replacements: [],

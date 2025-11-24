@@ -14,12 +14,12 @@
       {
         "title": "Anna Translator",
         "label": "main",
-        "width": 640,
-        "height": 520,
+        "width": 800,
+        "height": 300,
         "resizable": true,
         "decorations": false,
         "visible": true,
-        "alwaysOnTop": true
+        "alwaysOnTop": false
       }
     ],
     "security": {

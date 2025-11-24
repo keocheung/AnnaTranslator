@@ -402,6 +402,40 @@ async function persistTranslationHistory(original: string, translation: string) 
                 circle
                 tertiary
                 :focusable="false"
+                @click="stopStream"
+                :disabled="!streaming"
+                class="main-button"
+              >
+                <n-icon>
+                  <StopRound />
+                </n-icon>
+              </n-button>
+            </template>
+            {{ t("app.actions.stopStream") }}
+          </n-tooltip>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-button
+                circle
+                tertiary
+                :focusable="false"
+                @click="handleRetranslate"
+                :disabled="!originalText || streaming"
+                class="main-button"
+              >
+                <n-icon>
+                  <RefreshRound />
+                </n-icon>
+              </n-button>
+            </template>
+            {{ t("app.actions.retranslate") }}
+          </n-tooltip>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-button
+                circle
+                tertiary
+                :focusable="false"
                 @click="openHistoryWindow($event)"
                 class="main-button"
               >
@@ -457,39 +491,6 @@ async function persistTranslationHistory(original: string, translation: string) 
             translatedText ||
             (streaming ? t("app.status.translating") : t("app.status.noTranslation"))
           }}
-          <n-float-button-group :right="16" :bottom="16" spacing="8">
-            <n-flex>
-              <n-tooltip trigger="hover">
-                <template #trigger>
-                  <n-float-button
-                    type="primary"
-                    ghost
-                    @click="copyTranslation"
-                    :disabled="!translatedText"
-                  >
-                    <n-icon>
-                      <ContentCopyRound />
-                    </n-icon>
-                  </n-float-button>
-                </template>
-                {{ t("app.actions.copyTranslation") }}
-              </n-tooltip>
-              <n-tooltip trigger="hover">
-                <template #trigger>
-                  <n-float-button
-                    secondary
-                    @click="handleRetranslate"
-                    :disabled="!originalText || streaming"
-                  >
-                    <n-icon>
-                      <RefreshRound />
-                    </n-icon>
-                  </n-float-button>
-                </template>
-                {{ t("app.actions.retranslate") }}
-              </n-tooltip>
-            </n-flex>
-          </n-float-button-group>
         </div>
       </n-flex>
     </n-card>
@@ -502,36 +503,6 @@ async function persistTranslationHistory(original: string, translation: string) 
         >
           {{ originalText || t("app.status.waitingInput") }}
         </div>
-
-        <n-float-button-group :right="16" :bottom="16" spacing="8">
-          <n-flex>
-            <n-tooltip trigger="hover">
-              <template #trigger>
-                <n-float-button
-                  type="primary"
-                  ghost
-                  @click="copyOriginal"
-                  :disabled="!originalText"
-                >
-                  <n-icon>
-                    <ContentCopyRound />
-                  </n-icon>
-                </n-float-button>
-              </template>
-              {{ t("app.actions.copyOriginal") }}
-            </n-tooltip>
-            <n-tooltip trigger="hover">
-              <template #trigger>
-                <n-float-button secondary @click="stopStream" :disabled="!streaming">
-                  <n-icon>
-                    <StopRound />
-                  </n-icon>
-                </n-float-button>
-              </template>
-              {{ t("app.actions.stopStream") }}
-            </n-tooltip>
-          </n-flex>
-        </n-float-button-group>
         <!-- <n-input
           v-model:value="manualInput"
           type="textarea"
@@ -554,6 +525,14 @@ async function persistTranslationHistory(original: string, translation: string) 
 html,
 body {
   overscroll-behavior: none;
+}
+
+.app-title {
+  font-family:
+    Google Sans Flex,
+    sans-serif;
+  font-weight: 800;
+  font-size: 20px;
 }
 
 .main-button {
