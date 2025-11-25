@@ -6,14 +6,22 @@ on:
       - main
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: powershell
+  build-tauri:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "macos-latest"
+            args: ""
+            artifact: src-tauri/target/release/bundle/dmg/*.dmg
+          - platform: "windows-latest"
+            args: ""
+            artifact: src-tauri/target/release/*.exe
+
+    runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
@@ -31,6 +39,7 @@ jobs:
       - name: Cache Rust toolchain
         uses: Swatinem/rust-cache@v2
         with:
+          workspaces: src-tauri
           key: ${{ runner.os }}-cargo
 
       - name: Build Tauri app
@@ -42,4 +51,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tauri-windows-bundle
-          path: src-tauri/target/release/*.exe
+          path: ${{ matrix.artifact }}
