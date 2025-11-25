@@ -76,4 +76,5 @@ jobs:
           tag: nightly
           release_name: Nightly
           prerelease: true
+          check_duplicates: false
           overwrite: true
