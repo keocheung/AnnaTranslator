@@ -8,7 +8,8 @@ export default {
     general: "通用",
   },
   titleBar: {
-    listeningPort: "监听端口 {port}",
+    listeningPort: "监听端口{port}",
+    portListenFailed: "端口{port}监听失败",
     translatePause: "翻译/暂停",
     alwaysOnTop: "窗口置顶",
     history: "历史记录",
@@ -50,6 +51,7 @@ export default {
       historyOnlyInApp: "历史窗口仅在 Tauri 应用内可用",
       openHistoryFailed: "历史窗口打开失败",
       alwaysOnTopFailed: "无法设置置顶窗口",
+      portListenFailed: "监听端口失败，请检查端口占用或更换端口",
     },
   },
   settings: {

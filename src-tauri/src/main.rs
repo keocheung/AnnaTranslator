@@ -26,6 +26,8 @@ static TRANSLATION_HISTORY: Lazy<Mutex<Vec<HistoryEntry>>> = Lazy::new(|| Mutex:
 const MAX_HISTORY: usize = 1000;
 static TEXT_REPLACEMENTS: Lazy<Mutex<Vec<TextReplacementRule>>> =
     Lazy::new(|| Mutex::new(Vec::new()));
+static HTTP_SERVER_ERROR: Lazy<Mutex<Option<HttpServerErrorPayload>>> =
+    Lazy::new(|| Mutex::new(None));
 
 fn cache_db_path(app: &AppHandle) -> Result<PathBuf> {
     let mut dir = app.path().app_data_dir()?;
@@ -237,6 +239,12 @@ async fn start_http_server(app: AppHandle, port: u16) -> Result<()> {
     Ok(())
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+struct HttpServerErrorPayload {
+    port: u16,
+    message: String,
+}
+
 fn read_port_from_env() -> u16 {
     std::env::var("TRANSLATOR_PORT")
         .ok()
@@ -350,6 +358,14 @@ fn get_translation_history() -> Vec<HistoryEntry> {
 }
 
 #[tauri::command]
+fn get_http_server_error() -> Option<HttpServerErrorPayload> {
+    HTTP_SERVER_ERROR
+        .lock()
+        .ok()
+        .and_then(|state| state.clone())
+}
+
+#[tauri::command]
 async fn get_cached_translation(app: AppHandle, text: String) -> Result<Option<String>, String> {
     let path = cache_db_path(&app).map_err(|e| e.to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
@@ -411,7 +427,8 @@ fn main() -> Result<()> {
             get_cached_translation,
             store_translation,
             record_translation_history,
-            get_translation_history
+            get_translation_history,
+            get_http_server_error
         ])
         .setup(|app| {
             // Clone to detach lifetime from setup closure.
@@ -420,6 +437,18 @@ fn main() -> Result<()> {
                 let port = read_port_from_env();
                 if let Err(err) = start_http_server(app_handle.clone(), port).await {
                     eprintln!("[tauri] failed to start HTTP listener: {err}");
+                    let payload = HttpServerErrorPayload {
+                        port,
+                        message: err.to_string(),
+                    };
+                    if let Ok(mut last_error) = HTTP_SERVER_ERROR.lock() {
+                        *last_error = Some(payload.clone());
+                    }
+                    if let Err(emit_err) = app_handle.emit("http_server_failed", payload) {
+                        eprintln!(
+                            "[tauri] failed to notify frontend about HTTP listener error: {emit_err}"
+                        );
+                    }
                 }
             });
 

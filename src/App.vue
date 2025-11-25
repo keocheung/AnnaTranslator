@@ -39,6 +39,7 @@ const originalText = ref("");
 const translatedText = ref("");
 const streaming = ref(false);
 const manualInput = ref("");
+const portError = ref<string | null>(null);
 const { message } = createDiscreteApi(["message"], {
   configProviderProps: {
     themeOverrides: purpleThemeOverrides,
@@ -56,6 +57,12 @@ const textStyle = computed(() => ({
   fontSize: `${settings.value.fontSize}px`,
   lineHeight: 1.5,
 }));
+const portTagType = computed(() => (portError.value ? "error" : "info"));
+const portTagText = computed(() =>
+  portError.value
+    ? t("titleBar.portListenFailed", { port: settings.value.serverPort })
+    : t("titleBar.listeningPort", { port: settings.value.serverPort })
+);
 
 let isPaused = ref(false);
 
@@ -77,6 +84,11 @@ watch(
   { immediate: true }
 );
 
+type HttpServerErrorPayload = {
+  port?: number;
+  message?: string;
+};
+
 onMounted(async () => {
   try {
     const unlisten = await listen<{ text: string } | string>("incoming_text", async (event) => {
@@ -90,6 +102,29 @@ onMounted(async () => {
   } catch (error) {
     message.error(t("app.messages.listenerInitFailed"));
     console.error(error);
+  }
+
+  if (isTauri) {
+    try {
+      const unlistenServerError = await listen<HttpServerErrorPayload>(
+        "http_server_failed",
+        (event) => {
+          const payload = event.payload;
+          const port = typeof payload?.port === "number" ? payload.port : settings.value.serverPort;
+          if (typeof payload?.port === "number") {
+            settings.value.serverPort = payload.port;
+          }
+          const warning = payload?.message ?? t("app.messages.portListenFailed", { port });
+          portError.value = warning;
+          message.error(warning);
+        }
+      );
+      unlistenFns.push(unlistenServerError);
+    } catch (error) {
+      console.error("Failed to listen for HTTP server errors", error);
+    }
+
+    await refreshPortError();
   }
 });
 
@@ -351,6 +386,20 @@ async function persistTranslationHistory(original: string, translation: string) 
   if (!translation.trim()) return;
   await recordTranslationHistory(original, translation);
 }
+
+async function refreshPortError() {
+  if (!isTauri) return;
+  try {
+    const payload = await invoke<HttpServerErrorPayload | null>("get_http_server_error");
+    if (!payload) return;
+    const port = typeof payload.port === "number" ? payload.port : settings.value.serverPort;
+    settings.value.serverPort = port;
+    const warning = payload.message ?? t("app.messages.portListenFailed", { port });
+    portError.value = warning;
+  } catch (error) {
+    console.error("Failed to refresh HTTP server error", error);
+  }
+}
 </script>
 
 <template>
@@ -361,8 +410,16 @@ async function persistTranslationHistory(original: string, translation: string) 
           <n-gradient-text class="app-title" gradient="linear-gradient(120deg, #4c83ff, #4fd1c5)">
             {{ t("common.appName") }}
           </n-gradient-text>
-          <n-tag size="small" type="success" bordered>
-            {{ t("titleBar.listeningPort", { port: settings.serverPort }) }}
+          <n-tooltip v-if="portError" trigger="hover">
+            <template #trigger>
+              <n-tag size="small" :type="portTagType" bordered>
+                {{ portTagText }}
+              </n-tag>
+            </template>
+            {{ portError }}
+          </n-tooltip>
+          <n-tag v-else size="small" :type="portTagType" bordered>
+            {{ portTagText }}
           </n-tag>
         </div>
         <div class="title-bar__actions no-drag">
@@ -508,6 +565,10 @@ async function persistTranslationHistory(original: string, translation: string) 
   </n-config-provider>
 </template>
 <style>
+body {
+  text-autospace: normal;
+}
+
 html,
 body {
   overscroll-behavior: none;

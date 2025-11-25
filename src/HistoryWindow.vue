@@ -121,6 +121,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+body {
+  text-autospace: normal;
+}
+
 .history-list {
   display: flex;
   flex-direction: column;

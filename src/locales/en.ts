@@ -9,6 +9,7 @@ export default {
   },
   titleBar: {
     listeningPort: "Listening on port {port}",
+    portListenFailed: "Port {port} unavailable",
     translatePause: "Translate / Pause",
     alwaysOnTop: "Always on top",
     history: "History",
@@ -50,6 +51,7 @@ export default {
       historyOnlyInApp: "History window is only available inside the Tauri app",
       openHistoryFailed: "Failed to open history window",
       alwaysOnTopFailed: "Failed to toggle always-on-top",
+      portListenFailed: "Failed to listen on the configured port",
     },
   },
   settings: {
