@@ -11,10 +11,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest"
+          - platform: macos-latest
             args: ""
             artifact: src-tauri/target/release/bundle/dmg/*.dmg
-          - platform: "windows-latest"
+          - platform: windows-latest
             args: ""
             artifact: src-tauri/target/release/*.exe
 
@@ -50,5 +50,5 @@ jobs:
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-windows-bundle
+          name: anna-translator-${{ runner.os }}-${{ runner.arch }}
           path: ${{ matrix.artifact }}
