@@ -25,26 +25,12 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
 
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            ~/.cache/bun
-            node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
-
       - name: Install Bun dependencies
         run: bun install
 
-      - name: Cache Cargo registry and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+      - name: Cache Rust toolchain
+        uses: Swatinem/rust-cache@v2
+        with: key:${{ runner.os }}-cargo
 
       - name: Build Tauri app
         env:

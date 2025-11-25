@@ -209,14 +209,14 @@ body {
   font-size: 13px;
 }
 
-:global(.n-button),
-:global(.n-button *),
-:global(.n-switch),
-:global(.n-switch *),
-:global(.n-tag),
-:global(.n-tag *),
-:global(.n-menu),
-:global(.n-menu *) {
+.n-button,
+.n-button *,
+.n-switch,
+.n-switch *,
+.n-tag,
+.n-tag *,
+.n-menu,
+.n-menu * {
   cursor: default !important;
 }
 </style>
