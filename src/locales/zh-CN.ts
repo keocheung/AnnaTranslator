@@ -25,7 +25,7 @@ export default {
       translating: "正在翻译...",
       noTranslation: "尚未有译文",
       streaming: "流式输出中",
-      waitingInput: "等待本地 HTTP 推送 / 手动输入",
+      waitingInput: "等待本地 HTTP 推送",
     },
     placeholders: {
       manualInput: "手动输入以测试翻译",

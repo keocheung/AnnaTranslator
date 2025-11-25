@@ -25,7 +25,7 @@ export default {
       translating: "Translating...",
       noTranslation: "No translation yet",
       streaming: "Streaming",
-      waitingInput: "Waiting for local HTTP push / manual input",
+      waitingInput: "Waiting for local HTTP push",
     },
     placeholders: {
       manualInput: "Type text manually to test translation",

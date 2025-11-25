@@ -120,9 +120,14 @@ onBeforeUnmount(() => {
   </n-config-provider>
 </template>
 
-<style scoped>
+<style>
 body {
   text-autospace: normal;
+}
+
+html,
+body {
+  overscroll-behavior: none;
 }
 
 .history-list {
