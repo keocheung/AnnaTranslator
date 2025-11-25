@@ -1,7 +1,6 @@
 [package]
-name = "local-translator"
+name = "anna-translator"
 version = "0.1.0"
-description = "Galgame translator overlay powered by Tauri 2"
 edition = "2021"
 
 [features]

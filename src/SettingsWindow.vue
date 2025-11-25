@@ -347,7 +347,11 @@ body {
 }
 
 .settings-content {
-  padding-left: 4px;
+  padding: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  max-height: 100%;
 }
 
 .settings-menu {
@@ -368,14 +372,6 @@ body {
   .settings-menu .n-menu-item-content::before {
     --n-item-color-hover: rgba(255, 255, 255, 0.187);
   }
-}
-
-.settings-content {
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-  max-height: 100%;
-  padding-right: 4px;
 }
 
 .settings-pane {

@@ -6,7 +6,6 @@ import {
   NButtonGroup,
   NCard,
   NConfigProvider,
-  NFlex,
   NGradientText,
   NIcon,
   NSwitch,
@@ -356,166 +355,156 @@ async function persistTranslationHistory(original: string, translation: string) 
 
 <template>
   <n-config-provider :theme-overrides="purpleThemeOverrides">
-    <div class="title-bar" data-tauri-drag-region @mousedown="startDragging">
-      <div class="title-bar__left drag-region" data-tauri-drag-region>
-        <n-gradient-text class="app-title" gradient="linear-gradient(120deg, #4c83ff, #4fd1c5)">
-          {{ t("common.appName") }}
-        </n-gradient-text>
-        <n-tag size="small" type="success" bordered>
-          {{ t("titleBar.listeningPort", { port: settings.serverPort }) }}
-        </n-tag>
+    <div class="app-shell">
+      <div class="title-bar" data-tauri-drag-region @mousedown="startDragging">
+        <div class="title-bar__left drag-region" data-tauri-drag-region>
+          <n-gradient-text class="app-title" gradient="linear-gradient(120deg, #4c83ff, #4fd1c5)">
+            {{ t("common.appName") }}
+          </n-gradient-text>
+          <n-tag size="small" type="success" bordered>
+            {{ t("titleBar.listeningPort", { port: settings.serverPort }) }}
+          </n-tag>
+        </div>
+        <div class="title-bar__actions no-drag">
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-switch size="large" :value="!isPaused" @update:value="handlePause">
+                <template #checked-icon>
+                  <n-icon :component="PlayArrowRound" />
+                </template>
+                <template #unchecked-icon>
+                  <n-icon :component="PauseRound" />
+                </template>
+              </n-switch>
+            </template>
+            {{ t("titleBar.translatePause") }}
+          </n-tooltip>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-switch size="large" :value="settings.keepOnTop" @update:value="handleKeepOnTop">
+                <template #checked-icon>
+                  <n-icon :component="LayersRound" />
+                </template>
+                <template #unchecked-icon>
+                  <n-icon :component="LayersClearRound" />
+                </template>
+              </n-switch>
+            </template>
+            {{ t("titleBar.alwaysOnTop") }}
+          </n-tooltip>
+          <n-button-group>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-button
+                  circle
+                  tertiary
+                  :focusable="false"
+                  @click="stopStream"
+                  :disabled="!streaming"
+                  class="main-button"
+                >
+                  <n-icon>
+                    <StopRound />
+                  </n-icon>
+                </n-button>
+              </template>
+              {{ t("app.actions.stopStream") }}
+            </n-tooltip>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-button
+                  circle
+                  tertiary
+                  :focusable="false"
+                  @click="handleRetranslate"
+                  :disabled="!originalText || streaming"
+                  class="main-button"
+                >
+                  <n-icon>
+                    <RefreshRound />
+                  </n-icon>
+                </n-button>
+              </template>
+              {{ t("app.actions.retranslate") }}
+            </n-tooltip>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-button
+                  circle
+                  tertiary
+                  :focusable="false"
+                  @click="openHistoryWindow($event)"
+                  class="main-button"
+                >
+                  <n-icon>
+                    <HistoryRound />
+                  </n-icon>
+                </n-button>
+              </template>
+              {{ t("titleBar.history") }}
+            </n-tooltip>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-button
+                  circle
+                  tertiary
+                  :focusable="false"
+                  @click="openSettingsWindow($event)"
+                  class="main-button"
+                >
+                  <n-icon>
+                    <SettingsRound />
+                  </n-icon>
+                </n-button>
+              </template>
+              {{ t("titleBar.settings") }}
+            </n-tooltip>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-button
+                  circle
+                  tertiary
+                  type="error"
+                  @click="appWindow.close()"
+                  class="main-button"
+                >
+                  <n-icon>
+                    <CloseRound />
+                  </n-icon>
+                </n-button>
+              </template>
+              {{ t("titleBar.quit") }}
+            </n-tooltip>
+          </n-button-group>
+        </div>
       </div>
-      <div class="title-bar__actions no-drag">
-        <n-tooltip trigger="hover">
-          <template #trigger>
-            <n-switch size="large" :value="!isPaused" @update:value="handlePause">
-              <template #checked-icon>
-                <n-icon :component="PlayArrowRound" />
-              </template>
-              <template #unchecked-icon>
-                <n-icon :component="PauseRound" />
-              </template>
-            </n-switch>
-          </template>
-          {{ t("titleBar.translatePause") }}
-        </n-tooltip>
-        <n-tooltip trigger="hover">
-          <template #trigger>
-            <n-switch size="large" :value="settings.keepOnTop" @update:value="handleKeepOnTop">
-              <template #checked-icon>
-                <n-icon :component="LayersRound" />
-              </template>
-              <template #unchecked-icon>
-                <n-icon :component="LayersClearRound" />
-              </template>
-            </n-switch>
-          </template>
-          {{ t("titleBar.alwaysOnTop") }}
-        </n-tooltip>
-        <n-button-group>
-          <n-tooltip trigger="hover">
-            <template #trigger>
-              <n-button
-                circle
-                tertiary
-                :focusable="false"
-                @click="stopStream"
-                :disabled="!streaming"
-                class="main-button"
-              >
-                <n-icon>
-                  <StopRound />
-                </n-icon>
-              </n-button>
-            </template>
-            {{ t("app.actions.stopStream") }}
-          </n-tooltip>
-          <n-tooltip trigger="hover">
-            <template #trigger>
-              <n-button
-                circle
-                tertiary
-                :focusable="false"
-                @click="handleRetranslate"
-                :disabled="!originalText || streaming"
-                class="main-button"
-              >
-                <n-icon>
-                  <RefreshRound />
-                </n-icon>
-              </n-button>
-            </template>
-            {{ t("app.actions.retranslate") }}
-          </n-tooltip>
-          <n-tooltip trigger="hover">
-            <template #trigger>
-              <n-button
-                circle
-                tertiary
-                :focusable="false"
-                @click="openHistoryWindow($event)"
-                class="main-button"
-              >
-                <n-icon>
-                  <HistoryRound />
-                </n-icon>
-              </n-button>
-            </template>
-            {{ t("titleBar.history") }}
-          </n-tooltip>
-          <n-tooltip trigger="hover">
-            <template #trigger>
-              <n-button
-                circle
-                tertiary
-                :focusable="false"
-                @click="openSettingsWindow($event)"
-                class="main-button"
-              >
-                <n-icon>
-                  <SettingsRound />
-                </n-icon>
-              </n-button>
-            </template>
-            {{ t("titleBar.settings") }}
-          </n-tooltip>
-          <n-tooltip trigger="hover">
-            <template #trigger>
-              <n-button circle tertiary type="error" @click="appWindow.close()" class="main-button">
-                <n-icon>
-                  <CloseRound />
-                </n-icon>
-              </n-button>
-            </template>
-            {{ t("titleBar.quit") }}
-          </n-tooltip>
-        </n-button-group>
-      </div>
-    </div>
-    <n-card class="card" size="large" :bordered="false">
-      <n-flex vertical size="large">
-        <div
-          style="
-            padding: 16px;
-            background: #0b1727;
-            color: #e8f0ff;
-            min-height: 120px;
-            white-space: pre-wrap;
-          "
-          :style="textStyle"
-        >
+      <div class="text-panels">
+        <div class="panel-content translated-panel" :style="textStyle">
           {{
             translatedText ||
             (streaming ? t("app.status.translating") : t("app.status.noTranslation"))
           }}
         </div>
-      </n-flex>
-    </n-card>
 
-    <n-card class="card" size="large" :bordered="false">
-      <n-flex vertical size="large">
-        <div
-          style="padding: 12px 14px; background: #f5f7fb; min-height: 120px; white-space: pre-wrap"
-          :style="textStyle"
-        >
+        <div class="panel-content original-panel" :style="textStyle">
           {{ originalText || t("app.status.waitingInput") }}
         </div>
         <!-- <n-input
-          v-model:value="manualInput"
-          type="textarea"
-          :placeholder="t('app.placeholders.manualInput')"
-          :autosize="{ minRows: 3, maxRows: 6 }"
-        />
-        <n-flex>
-          <n-button type="primary" @click="handleManualTranslate">
-            {{ t("app.actions.translateInput") }}
-          </n-button>
-          <n-button secondary @click="stopStream" :disabled="!streaming">
-            {{ t("app.actions.stopStream") }}
-          </n-button>
-        </n-flex> -->
-      </n-flex>
-    </n-card>
+            v-model:value="manualInput"
+            type="textarea"
+            :placeholder="t('app.placeholders.manualInput')"
+            :autosize="{ minRows: 3, maxRows: 6 }"
+          />
+          <n-flex>
+            <n-button type="primary" @click="handleManualTranslate">
+              {{ t("app.actions.translateInput") }}
+            </n-button>
+            <n-button secondary @click="stopStream" :disabled="!streaming">
+              {{ t("app.actions.stopStream") }}
+            </n-button>
+          </n-flex> -->
+      </div>
+    </div>
   </n-config-provider>
 </template>
 <style>
@@ -530,6 +519,52 @@ body {
     sans-serif;
   font-weight: 800;
   font-size: 20px;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+}
+
+.text-panels {
+  flex: 1;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 0;
+  padding: 0;
+  min-height: 0;
+}
+
+.text-panel {
+  min-height: 0;
+  display: flex;
+  border-radius: 0;
+}
+
+.text-panel .n-card__content {
+  display: flex;
+  flex: 1;
+  padding: 0;
+}
+
+.panel-content {
+  flex: 1;
+  white-space: pre-wrap;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 0;
+}
+
+.translated-panel {
+  background: #0b1727;
+  color: #e8f0ff;
+}
+
+.original-panel {
+  background: #f5f7fb;
+  color: #16212b;
 }
 
 .main-button {
