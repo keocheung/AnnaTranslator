@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "src/**"
+      - "src-tauri/**"
+      - "index.html"
+      - "vite.config.ts"
 
 env:
   APP_NAME: AnnaTranslator

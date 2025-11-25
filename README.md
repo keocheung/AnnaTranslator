@@ -37,6 +37,15 @@ curl -X POST http://127.0.0.1:17889/v1/chat/completions \
   -d '{ "messages": [ { "role": "user", "content": "こんにちは。" } ] }'
 ```
 
+### Ren'Py
+
+Ren'Py游戏原生支持语音朗读，在不同的系统上会调用不同的朗读命令。
+
+macOS在本仓库目录内用以下命令启动游戏（替换成实际的游戏路径），即可覆盖默认的朗读命令，将文本发送到Anna Translator
+```bash
+PATH=$(pwd)/script/renpy:$PATH {{GAME_APP_PATH}}.app/Contents/MacOS/{{GAME_BINARY_NAME}}
+```
+
 ## 配置项
 
 - `OpenAI Base URL`：默认 `https://api.openai.com`，可改为代理或自建兼容接口。
