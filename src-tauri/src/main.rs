@@ -18,7 +18,7 @@ use std::fs;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_store::Builder as StoreBuilder;
@@ -35,13 +35,7 @@ static TEXT_REPLACEMENTS: Lazy<Mutex<Vec<TextReplacementRule>>> =
     Lazy::new(|| Mutex::new(Vec::new()));
 static HTTP_SERVER_ERROR: Lazy<Mutex<Option<HttpServerErrorPayload>>> =
     Lazy::new(|| Mutex::new(None));
-static TOKENIZER: Lazy<Mutex<Tokenizer>> = Lazy::new(|| {
-    let dictionary = load_dictionary("embedded://ipadic")
-        .expect("failed to load embedded ipadic dictionary for tokenizer");
-    let segmenter = Segmenter::new(Mode::Normal, dictionary, None);
-    let tokenizer = Tokenizer::new(segmenter);
-    Mutex::new(tokenizer)
-});
+static TOKENIZER: OnceLock<Mutex<Tokenizer>> = OnceLock::new();
 
 fn cache_db_path(app: &AppHandle) -> Result<PathBuf> {
     let mut dir = app.path().app_data_dir()?;
@@ -182,9 +176,8 @@ fn annotate_with_furigana(text: &str) -> Result<String, String> {
         return Ok(String::new());
     }
 
-    let tokenizer = TOKENIZER
-        .lock()
-        .map_err(|err| format!("tokenizer lock poisoned: {err}"))?;
+    let tokenizer = tokenizer()
+        .map_err(|err| format!("tokenizer unavailable: {err}"))?;
     let mut tokens = tokenizer
         .tokenize(text)
         .map_err(|err| format!("tokenization failed: {err}"))?;
@@ -471,6 +464,37 @@ fn get_http_server_error() -> Option<HttpServerErrorPayload> {
         .and_then(|state| state.clone())
 }
 
+fn dictionary_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let mut path = app
+        .path()
+        .app_data_dir()
+        .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
+    path.push("dictionary");
+    path.push("unidic");
+    Ok(path)
+}
+
+fn initialize_tokenizer(app: &AppHandle) -> Result<(), String> {
+    let path = dictionary_path(app)?;
+    let dictionary_uri = format!("file://{}", path.to_string_lossy());
+    let dictionary = load_dictionary(&dictionary_uri)
+        .map_err(|err| format!("failed to load dictionary: {err}"))?;
+    let segmenter = Segmenter::new(Mode::Normal, dictionary, None);
+    let tokenizer = Mutex::new(Tokenizer::new(segmenter));
+
+    TOKENIZER
+        .set(tokenizer)
+        .map_err(|_| "tokenizer already initialized".to_string())
+}
+
+fn tokenizer() -> Result<std::sync::MutexGuard<'static, Tokenizer>, String> {
+    TOKENIZER
+        .get()
+        .ok_or_else(|| "tokenizer not initialized".to_string())?
+        .lock()
+        .map_err(|err| format!("tokenizer lock poisoned: {err}"))
+}
+
 #[tauri::command]
 async fn get_cached_translation(app: AppHandle, text: String) -> Result<Option<String>, String> {
     let path = cache_db_path(&app).map_err(|e| e.to_string())?;
@@ -538,6 +562,7 @@ fn main() -> Result<()> {
             get_http_server_error
         ])
         .setup(|app| {
+            initialize_tokenizer(&app.handle()).map_err(|err| anyhow::anyhow!(err))?;
             // Clone to detach lifetime from setup closure.
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
