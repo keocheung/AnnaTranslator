@@ -1,6 +1,6 @@
-# Anna Translator (Tauri 2 + Vue + Naive UI)
+# Anna Translator
 
-一个类似 LunaTranslator 的 Galgame 翻译悬浮窗，使用 Tauri 2 + Vue 3 + Naive UI + Bun 构建。
+一个视觉小说可用的实时翻译器，跨平台、轻量且现代。
 
 ## 功能概览
 
@@ -10,19 +10,6 @@
 - OpenAI 翻译：可配置 Base URL、Key、Model、Prompt，支持流式输出。
 - 字体与字号：自定义字体栈和大小，便于搭配 Gal 字体。
 - 手动输入：可手动输入测试翻译，支持停止流。
-
-## 快速开始
-
-```bash
-# 安装依赖（需要本机已有 Bun）
-bun install
-
-# 开发调试（启动 Vite 与 Tauri 2，并开启 devtools）
-bun run tauri:dev
-
-# 构建（生产模式关闭 devtools）
-bunx tauri build
-```
 
 ## 推送示例
 
@@ -57,7 +44,27 @@ PATH=$(pwd)/script/renpy:$PATH {{GAME_APP_PATH}}.app/Contents/MacOS/{{GAME_BINAR
 - `OpenAI 兼容输入`：默认关闭，开启后接受 `/v1/chat/completions` 形式请求，仅提取用户消息并推送到前端，响应固定 404。
 - 环境变量 `TRANSLATOR_PORT`：可覆盖监听端口（默认 17889）。
 
-## 目录
+## 开发
 
-- `src/`：Vue 3 + Naive UI 前端
-- `src-tauri/`：Tauri 2 后端（Axum 本地 HTTP 监听）
+```bash
+# 安装依赖（需要本机已有 Bun）
+bun install
+
+# 开发调试（启动 Vite 与 Tauri 2，并开启 devtools）
+bun tauri dev
+
+# 构建（生产模式关闭 devtools）
+bunx tauri build
+```
+
+## TODO
+* [ ] logo
+* [ ] 自带更新工具
+* [ ] 日语分词及注音
+  * [ ] 词典
+* [ ] OCR输入
+  * [ ] OCR区域选择窗口
+  * [ ] macOS自带OCR
+* [ ] 支持更多翻译接口
+  * [ ] Ollama
+  * [ ] 传统在线API
