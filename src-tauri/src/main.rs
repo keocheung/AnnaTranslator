@@ -171,13 +171,12 @@ fn token_reading(token: &mut Token) -> Option<String> {
     })
 }
 
-fn annotate_with_furigana(text: &str) -> Result<String, String> {
+fn annotate_with_furigana(app: &AppHandle, text: &str) -> Result<String, String> {
     if text.trim().is_empty() {
         return Ok(String::new());
     }
 
-    let tokenizer = tokenizer()
-        .map_err(|err| format!("tokenizer unavailable: {err}"))?;
+    let tokenizer = tokenizer(app)?;
     let mut tokens = tokenizer
         .tokenize(text)
         .map_err(|err| format!("tokenization failed: {err}"))?;
@@ -412,8 +411,8 @@ fn set_text_replacements(rules: Vec<ReplacementRulePayload>) -> Result<(), Strin
 }
 
 #[tauri::command]
-fn annotate_furigana(text: String) -> Result<String, String> {
-    annotate_with_furigana(&text)
+fn annotate_furigana(app: AppHandle, text: String) -> Result<String, String> {
+    annotate_with_furigana(&app, &text)
 }
 
 #[derive(Clone, Serialize)]
@@ -487,7 +486,12 @@ fn initialize_tokenizer(app: &AppHandle) -> Result<(), String> {
         .map_err(|_| "tokenizer already initialized".to_string())
 }
 
-fn tokenizer() -> Result<std::sync::MutexGuard<'static, Tokenizer>, String> {
+fn tokenizer(app: &AppHandle) -> Result<std::sync::MutexGuard<'static, Tokenizer>, String> {
+    if TOKENIZER.get().is_none() {
+        // Lazily initialize when furigana is actually requested.
+        initialize_tokenizer(app)?;
+    }
+
     TOKENIZER
         .get()
         .ok_or_else(|| "tokenizer not initialized".to_string())?
@@ -562,7 +566,6 @@ fn main() -> Result<()> {
             get_http_server_error
         ])
         .setup(|app| {
-            initialize_tokenizer(&app.handle()).map_err(|err| anyhow::anyhow!(err))?;
             // Clone to detach lifetime from setup closure.
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
