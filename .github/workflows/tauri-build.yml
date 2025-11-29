@@ -9,6 +9,7 @@ on:
       - "src-tauri/**"
       - "index.html"
       - "vite.config.ts"
+      - ".github/workflows/tauri-build.yml"
 
 env:
   APP_NAME: AnnaTranslator
