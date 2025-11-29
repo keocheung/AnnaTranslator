@@ -64,7 +64,7 @@ jobs:
           releaseName: ${{ github.ref_type == 'branch' && 'Nightly' || github.ref_name }}
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
-          prerelease: false
+          prerelease: ${{ github.ref_type == 'branch' && 'true' || 'false' }}
           args: ${{ matrix.args }}
 
       - name: Upload bundle artifacts
