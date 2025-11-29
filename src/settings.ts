@@ -13,6 +13,7 @@ export type Settings = {
   fontSize: number;
   serverPort: number;
   keepOnTop: boolean;
+  alwaysShowTitleBar: boolean;
   monitorClipboard: boolean;
   openaiCompatibleInput: boolean;
   replacements: TextReplacementRule[];
@@ -28,6 +29,7 @@ export const defaultSettings: Settings = {
   fontSize: 18,
   serverPort: 17889,
   keepOnTop: false,
+  alwaysShowTitleBar: true,
   monitorClipboard: false,
   openaiCompatibleInput: false,
   replacements: [],

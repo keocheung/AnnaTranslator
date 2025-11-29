@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   NButton,
@@ -23,10 +23,12 @@ import {
   RefreshRound,
   SettingsRound,
   StopRound,
+  VisibilityOffRound,
+  VisibilityRound,
 } from "@vicons/material";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { PhysicalPosition, PhysicalSize, getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useSettingsState } from "./settings";
 import { recordTranslationHistory } from "./history";
@@ -48,6 +50,8 @@ const { message } = createDiscreteApi(["message"], {
 const unlistenFns: UnlistenFn[] = [];
 const controller = ref<AbortController | null>(null);
 const appWindow = getCurrentWindow();
+const titleBarRef = ref<HTMLElement | null>(null);
+const titleBarVisible = ref(true);
 const isTauri =
   typeof window !== "undefined" &&
   ("__TAURI_METADATA__" in window || "__TAURI_IPC__" in window || "__TAURI_INTERNALS__" in window);
@@ -65,6 +69,8 @@ const portTagText = computed(() =>
 );
 
 let isPaused = ref(false);
+let lastKnownTitleBarHeight = 0;
+let handlingTitleBar = false;
 
 watch(
   () => settings.value.keepOnTop,
@@ -84,12 +90,28 @@ watch(
   { immediate: true }
 );
 
+watch(
+  () => settings.value.alwaysShowTitleBar,
+  (alwaysShow) => {
+    if (alwaysShow) {
+      void showTitleBar();
+    } else if (!document.hasFocus()) {
+      void hideTitleBar();
+    }
+  },
+  { immediate: true }
+);
+
 type HttpServerErrorPayload = {
   port?: number;
   message?: string;
 };
 
 onMounted(async () => {
+  window.addEventListener("blur", handleWindowBlur);
+  window.addEventListener("focus", handleWindowFocus);
+  nextTick(rememberTitleBarHeight);
+
   try {
     const unlisten = await listen<{ text: string } | string>("incoming_text", async (event) => {
       const payload =
@@ -131,6 +153,8 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   controller.value?.abort();
   unlistenFns.forEach((fn) => fn());
+  window.removeEventListener("blur", handleWindowBlur);
+  window.removeEventListener("focus", handleWindowFocus);
 });
 
 async function translate(text: string, options: { force?: boolean } = {}) {
@@ -289,6 +313,82 @@ async function startDragging(event: MouseEvent) {
   }
 }
 
+function rememberTitleBarHeight() {
+  const height = titleBarRef.value?.offsetHeight ?? 0;
+  if (height > 0) {
+    lastKnownTitleBarHeight = height;
+  }
+}
+
+async function getTitleBarPhysicalHeight() {
+  if (!isTauri) return 0;
+  rememberTitleBarHeight();
+  if (!lastKnownTitleBarHeight) return 0;
+  const factor = await appWindow.scaleFactor();
+  return Math.round(lastKnownTitleBarHeight * factor);
+}
+
+function shouldAutoHideTitleBar() {
+  return isTauri && !settings.value.alwaysShowTitleBar;
+}
+
+async function hideTitleBar() {
+  if (!shouldAutoHideTitleBar() || handlingTitleBar || !titleBarVisible.value) return;
+  const barHeight = await getTitleBarPhysicalHeight();
+  if (!barHeight) return;
+  handlingTitleBar = true;
+  try {
+    const [size, position] = await Promise.all([appWindow.outerSize(), appWindow.outerPosition()]);
+    await Promise.all([
+      appWindow.setSize(
+        new PhysicalSize(size.width, Math.max(0, size.height - barHeight))
+      ),
+      appWindow.setPosition(new PhysicalPosition(position.x, position.y + barHeight)),
+    ]);
+    titleBarVisible.value = false;
+  } catch (error) {
+    console.error("Failed to hide title bar", error);
+  } finally {
+    handlingTitleBar = false;
+  }
+}
+
+async function showTitleBar() {
+  if (!isTauri) {
+    titleBarVisible.value = true;
+    return;
+  }
+  if (handlingTitleBar) return;
+  const wasHidden = !titleBarVisible.value;
+  titleBarVisible.value = true;
+  if (!wasHidden) return;
+
+  const barHeight = await getTitleBarPhysicalHeight();
+  if (!barHeight) return;
+  handlingTitleBar = true;
+  try {
+    const [size, position] = await Promise.all([appWindow.outerSize(), appWindow.outerPosition()]);
+    await Promise.all([
+      appWindow.setSize(new PhysicalSize(size.width, size.height + barHeight)),
+      appWindow.setPosition(new PhysicalPosition(position.x, position.y - barHeight)),
+    ]);
+  } catch (error) {
+    console.error("Failed to show title bar", error);
+  } finally {
+    handlingTitleBar = false;
+  }
+}
+
+function handleWindowBlur() {
+  if (shouldAutoHideTitleBar()) {
+    void hideTitleBar();
+  }
+}
+
+function handleWindowFocus() {
+  void showTitleBar();
+}
+
 async function syncClipboardWatch(enabled: boolean) {
   if (!isTauri) return;
   try {
@@ -405,7 +505,13 @@ async function refreshPortError() {
 <template>
   <n-config-provider :theme-overrides="purpleThemeOverrides">
     <div class="app-shell">
-      <div class="title-bar" data-tauri-drag-region @mousedown="startDragging">
+      <div
+        ref="titleBarRef"
+        class="title-bar"
+        data-tauri-drag-region
+        @mousedown="startDragging"
+        v-show="titleBarVisible"
+      >
         <div class="title-bar__left drag-region" data-tauri-drag-region>
           <n-gradient-text class="app-title" gradient="linear-gradient(120deg, #4c83ff, #4fd1c5)">
             {{ t("common.appName") }}
@@ -443,11 +549,28 @@ async function refreshPortError() {
                   <n-icon :component="LayersRound" />
                 </template>
                 <template #unchecked-icon>
-                  <n-icon :component="LayersClearRound" />
-                </template>
+              <n-icon :component="LayersClearRound" />
+              </template>
               </n-switch>
             </template>
             {{ t("titleBar.alwaysOnTop") }}
+          </n-tooltip>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-switch
+                size="large"
+                :value="settings.alwaysShowTitleBar"
+                @update:value="settings.alwaysShowTitleBar = $event"
+              >
+                <template #checked-icon>
+                  <n-icon :component="VisibilityRound" />
+                </template>
+                <template #unchecked-icon>
+                  <n-icon :component="VisibilityOffRound" />
+                </template>
+              </n-switch>
+            </template>
+            {{ t("titleBar.alwaysShowTitleBar") }}
           </n-tooltip>
           <n-button-group>
             <n-tooltip trigger="hover">

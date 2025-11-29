@@ -12,6 +12,7 @@ export default {
     portListenFailed: "Port {port} unavailable",
     translatePause: "Translate / Pause",
     alwaysOnTop: "Always on top",
+    alwaysShowTitleBar: "Always show title bar",
     history: "History",
     settings: "Settings",
     quit: "Quit",

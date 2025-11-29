@@ -12,6 +12,7 @@ export default {
     portListenFailed: "端口{port}监听失败",
     translatePause: "翻译/暂停",
     alwaysOnTop: "窗口置顶",
+    alwaysShowTitleBar: "总是显示标题栏",
     history: "历史记录",
     settings: "设置",
     quit: "退出",
