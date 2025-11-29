@@ -52,10 +52,7 @@ pub struct HttpServerErrorPayload {
     pub message: String,
 }
 
-async fn submit(
-    State(app): State<AppHandle>,
-    body: String,
-) -> impl axum::response::IntoResponse {
+async fn submit(State(app): State<AppHandle>, body: String) -> impl axum::response::IntoResponse {
     println!("[tauri] received /submit, len={}", body.len());
     if let Err(err) = emit_processed_text(&app, &body) {
         eprintln!("[tauri] failed to emit incoming_text event: {err}");

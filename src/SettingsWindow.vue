@@ -13,6 +13,7 @@ import {
   NInput,
   NInputNumber,
   NMenu,
+  NProgress,
   NSelect,
   NSpace,
   NSwitch,
@@ -24,27 +25,38 @@ import { Globe24Regular, Sparkle24Filled } from "@vicons/fluent";
 import { useSettingsState } from "./settings";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { getOpenAIConstructor } from "./openaiClient";
 import { purpleThemeOverrides } from "./theme";
 import { resolveLocale } from "./i18n";
+import { getVersion } from "@tauri-apps/api/app";
+import { check, type DownloadEvent } from "@tauri-apps/plugin-updater";
 
 const settings = useSettingsState();
 const { t } = useI18n();
 const validating = ref(false);
+const checkingUpdate = ref(false);
+const installingUpdate = ref(false);
+const updateProgress = ref<number | null>(null);
+const downloadedBytes = ref(0);
+const totalBytes = ref<number | null>(null);
 const { message } = createDiscreteApi(["message"], {
   configProviderProps: {
     themeOverrides: purpleThemeOverrides,
   },
 });
 const activeMenu = ref("general");
+const appVersion = ref("-");
+const isTauriEnv = ref(false);
+const availableUpdate = ref<Awaited<ReturnType<typeof check>> | null>(null);
 const menuOptions = computed(() => [
   { label: t("settings.menu.general"), key: "general" },
   { label: t("settings.menu.translation"), key: "translation" },
   { label: t("settings.menu.appearance"), key: "appearance" },
   { label: t("settings.menu.input"), key: "input" },
   { label: t("settings.menu.preprocess"), key: "preprocess" },
+  { label: t("settings.menu.about"), key: "about" },
 ]);
 
 const systemLocaleLabel = computed(() => {
@@ -74,6 +86,21 @@ const submitCommand = computed(
 
 const theme = computed(() => (useOsTheme().value === "dark" ? darkTheme : null));
 hljs.registerLanguage("bash", bash);
+
+const detectTauri = () =>
+  typeof window !== "undefined" &&
+  ("__TAURI_METADATA__" in window || "__TAURI_INTERNALS__" in window || "__TAURI_IPC__" in window);
+
+onMounted(async () => {
+  isTauriEnv.value = detectTauri();
+  if (!isTauriEnv.value) return;
+
+  try {
+    appVersion.value = await getVersion();
+  } catch (error) {
+    console.error("Failed to read app version:", error);
+  }
+});
 
 function addReplacementRule() {
   settings.value.replacements = [
@@ -118,6 +145,94 @@ async function validateOpenAIConfig() {
   } finally {
     validating.value = false;
   }
+}
+
+async function checkForUpdates() {
+  if (!isTauriEnv.value) {
+    message.error(t("settings.about.notInAppMessage"));
+    return;
+  }
+
+  checkingUpdate.value = true;
+  availableUpdate.value = null;
+  try {
+    const update = await check();
+    if (update) {
+      availableUpdate.value = update;
+      message.info(t("settings.about.updateAvailableToast", { version: update.version }));
+    } else {
+      message.success(t("settings.about.noUpdate"));
+    }
+  } catch (error) {
+    console.error("Update check failed:", error);
+    message.error((error as Error)?.message ?? t("settings.about.updateFailed"));
+  } finally {
+    checkingUpdate.value = false;
+  }
+}
+
+async function installUpdate() {
+  if (!availableUpdate.value) return;
+  installingUpdate.value = true;
+  updateProgress.value = null;
+  downloadedBytes.value = 0;
+  totalBytes.value = null;
+  try {
+    await availableUpdate.value.downloadAndInstall((event: DownloadEvent) => {
+      switch (event.event) {
+        case "Started":
+          totalBytes.value = event.data.contentLength ?? null;
+          downloadedBytes.value = 0;
+          updateProgress.value = totalBytes.value ? 0 : null;
+          break;
+        case "Progress":
+          downloadedBytes.value += event.data.chunkLength;
+          if (totalBytes.value) {
+            updateProgress.value = Math.min(
+              100,
+              Math.round((downloadedBytes.value / totalBytes.value) * 100)
+            );
+          }
+          break;
+        case "Finished":
+          if (totalBytes.value) {
+            updateProgress.value = 100;
+          }
+          break;
+      }
+    });
+
+    console.log("update installed");
+    await relaunch();
+    message.success(t("settings.about.installStarted"));
+  } catch (error) {
+    message.error((error as Error)?.message ?? t("settings.about.installFailed"));
+  } finally {
+    installingUpdate.value = false;
+    updateProgress.value = null;
+  }
+}
+
+const downloadProgressText = computed(() => {
+  if (!installingUpdate.value) return "";
+  if (updateProgress.value != null && totalBytes.value) {
+    return t("settings.about.progressWithTotal", {
+      downloaded: formatBytes(downloadedBytes.value),
+      total: formatBytes(totalBytes.value),
+    });
+  }
+  if (updateProgress.value != null) {
+    return t("settings.about.progressPercent", { percent: updateProgress.value });
+  }
+  return t("settings.about.downloading");
+});
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** exponent;
+  return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
 </script>
 
@@ -207,14 +322,14 @@ async function validateOpenAIConfig() {
                       class="code"
                     />
                   </n-form-item>
-                <n-form-item :label="t('settings.appearance.fontSize')">
-                  <n-input-number v-model:value="settings.fontSize" :min="12" :max="32" />
-                </n-form-item>
-                <n-form-item :label="t('settings.appearance.showFurigana')">
-                  <n-switch v-model:value="settings.showJapaneseFurigana" />
-                </n-form-item>
-              </n-form>
-            </div>
+                  <n-form-item :label="t('settings.appearance.fontSize')">
+                    <n-input-number v-model:value="settings.fontSize" :min="12" :max="32" />
+                  </n-form-item>
+                  <n-form-item :label="t('settings.appearance.showFurigana')">
+                    <n-switch v-model:value="settings.showJapaneseFurigana" />
+                  </n-form-item>
+                </n-form>
+              </div>
 
               <div v-else-if="activeMenu === 'input'" class="settings-pane">
                 <n-form-item :label="t('settings.input.monitorClipboard')">
@@ -287,6 +402,63 @@ async function validateOpenAIConfig() {
                     </n-button>
                   </n-space>
                 </n-form>
+              </div>
+
+              <div v-else-if="activeMenu === 'about'" class="settings-pane">
+                <n-space vertical :size="16">
+                  <n-card size="small" class="about-card" :bordered="true">
+                    <n-flex align="center" justify="space-between">
+                      <div class="about-meta">
+                        <div class="about-label">{{ t("settings.about.version") }}</div>
+                        <div class="about-version">{{ appVersion }}</div>
+                      </div>
+                      <n-button
+                        type="primary"
+                        secondary
+                        :loading="checkingUpdate"
+                        @click="checkForUpdates"
+                      >
+                        {{ t("settings.about.checkForUpdates") }}
+                      </n-button>
+                    </n-flex>
+                  </n-card>
+
+                  <n-alert
+                    v-if="availableUpdate"
+                    type="info"
+                    :title="
+                      t('settings.about.updateAvailableTitle', { version: availableUpdate.version })
+                    "
+                    class="update-alert"
+                  >
+                    <p v-if="availableUpdate.body" class="release-notes">
+                      {{ availableUpdate.body }}
+                    </p>
+                    <n-space v-if="installingUpdate" vertical size="small" class="update-progress">
+                      <n-progress
+                        type="line"
+                        :percentage="updateProgress ?? 0"
+                        :processing="updateProgress === null"
+                        :status="updateProgress === 100 ? 'success' : undefined"
+                      />
+                      <div class="progress-text">{{ downloadProgressText }}</div>
+                    </n-space>
+                    <n-space>
+                      <n-button type="primary" :loading="installingUpdate" @click="installUpdate">
+                        {{ t("settings.about.installUpdate") }}
+                      </n-button>
+                    </n-space>
+                  </n-alert>
+
+                  <n-alert
+                    v-else-if="!isTauriEnv"
+                    type="warning"
+                    :title="t('settings.about.notInAppTitle')"
+                    :closable="false"
+                  >
+                    {{ t("settings.about.notInAppMessage") }}
+                  </n-alert>
+                </n-space>
               </div>
             </n-flex>
           </div>
@@ -413,6 +585,44 @@ body {
 .rules-placeholder {
   color: var(--n-text-color-3);
   padding: 6px 2px;
+}
+
+.about-card {
+  box-shadow: none;
+}
+
+.about-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.about-label {
+  color: var(--n-text-color-2);
+  font-size: 14px;
+}
+
+.about-version {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.release-notes {
+  margin: 4px 0 12px 0;
+  white-space: pre-wrap;
+}
+
+.update-progress {
+  margin: 8px 0;
+}
+
+.progress-text {
+  color: var(--n-text-color-2);
+  font-size: 14px;
+}
+
+.update-alert {
+  box-shadow: none;
 }
 
 /* Use default arrow cursor for Naive UI interactive elements */

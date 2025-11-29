@@ -11,8 +11,7 @@ pub struct HistoryEntry {
     pub translation: String,
 }
 
-static TRANSLATION_HISTORY: Lazy<Mutex<Vec<HistoryEntry>>> =
-    Lazy::new(|| Mutex::new(Vec::new()));
+static TRANSLATION_HISTORY: Lazy<Mutex<Vec<HistoryEntry>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 #[tauri::command]
 pub fn record_translation_history(app: AppHandle, original: String, translation: String) {

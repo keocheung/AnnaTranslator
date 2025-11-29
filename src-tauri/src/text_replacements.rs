@@ -58,7 +58,10 @@ fn compile_replacement_rules(rules: Vec<ReplacementRulePayload>) -> Vec<TextRepl
                 replacement: rule.replacement,
             }),
             Err(err) => {
-                eprintln!("[tauri] failed to compile regex '{}': {}", rule.pattern, err);
+                eprintln!(
+                    "[tauri] failed to compile regex '{}': {}",
+                    rule.pattern, err
+                );
             }
         }
     }
@@ -92,9 +95,7 @@ pub fn emit_processed_text(app: &AppHandle, raw: &str) -> Result<(), tauri::Erro
 #[tauri::command]
 pub fn set_text_replacements(rules: Vec<ReplacementRulePayload>) -> Result<(), String> {
     let compiled = compile_replacement_rules(rules);
-    let mut storage = TEXT_REPLACEMENTS
-        .lock()
-        .map_err(|e| e.to_string())?;
+    let mut storage = TEXT_REPLACEMENTS.lock().map_err(|e| e.to_string())?;
     *storage = compiled;
     Ok(())
 }

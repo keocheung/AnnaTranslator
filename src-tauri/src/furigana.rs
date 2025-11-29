@@ -1,8 +1,5 @@
 use lindera::{
-    dictionary::load_dictionary,
-    mode::Mode,
-    segmenter::Segmenter,
-    token::Token,
+    dictionary::load_dictionary, mode::Mode, segmenter::Segmenter, token::Token,
     tokenizer::Tokenizer,
 };
 use std::path::PathBuf;
