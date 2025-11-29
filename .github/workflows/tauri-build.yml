@@ -28,6 +28,7 @@ jobs:
             artifact: src-tauri/target/release/bundle/nsis/*.exe
 
     runs-on: ${{ matrix.platform }}
+    environment: production
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
