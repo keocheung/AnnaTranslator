@@ -25,13 +25,14 @@ import { Globe24Regular, Sparkle24Filled } from "@vicons/fluent";
 import { useSettingsState } from "./settings";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
 import { getOpenAIConstructor } from "./openaiClient";
 import { purpleThemeOverrides } from "./theme";
 import { resolveLocale } from "./i18n";
 import { getVersion } from "@tauri-apps/api/app";
 import { check, type DownloadEvent } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 const settings = useSettingsState();
 const { t } = useI18n();
@@ -49,7 +50,7 @@ const { message } = createDiscreteApi(["message"], {
 const activeMenu = ref("general");
 const appVersion = ref("-");
 const isTauriEnv = ref(false);
-const availableUpdate = ref<Awaited<ReturnType<typeof check>> | null>(null);
+const availableUpdate = shallowRef<Awaited<ReturnType<typeof check>> | null>(null);
 const menuOptions = computed(() => [
   { label: t("settings.menu.general"), key: "general" },
   { label: t("settings.menu.translation"), key: "translation" },
@@ -202,10 +203,10 @@ async function installUpdate() {
       }
     });
 
-    console.log("update installed");
-    await relaunch();
     message.success(t("settings.about.installStarted"));
+    await relaunch();
   } catch (error) {
+    console.error("Update installation failed:", error);
     message.error((error as Error)?.message ?? t("settings.about.installFailed"));
   } finally {
     installingUpdate.value = false;

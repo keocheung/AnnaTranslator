@@ -13,6 +13,7 @@ use tauri_plugin_updater::Builder as UpdaterBuilder;
 
 fn main() -> Result<()> {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
         .plugin(UpdaterBuilder::new().build())
         .plugin(StoreBuilder::default().build())
         .invoke_handler(tauri::generate_handler![

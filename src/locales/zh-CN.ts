@@ -114,7 +114,7 @@ export default {
       updateAvailableTitle: "有新版本：v{version}",
       updateAvailableToast: "新版本 {version} 可用",
       installUpdate: "安装更新",
-      installStarted: "正在下载更新，完成后应用会自动重启",
+      installStarted: "正在下载更新",
       noUpdate: "当前已是最新版本",
       updateFailed: "检查更新失败",
       installFailed: "安装更新失败",

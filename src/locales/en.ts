@@ -114,7 +114,7 @@ export default {
       updateAvailableTitle: "Update available: v{version}",
       updateAvailableToast: "Update {version} is ready to install",
       installUpdate: "Install update",
-      installStarted: "Downloading update, the app will restart when ready",
+      installStarted: "Downloading update",
       noUpdate: "You're up to date",
       updateFailed: "Failed to check for updates",
       installFailed: "Failed to install update",
