@@ -4,12 +4,18 @@
 
 ## 功能概览
 
-- 前置窗口：默认置顶，可切换。
-- 本地 HTTP 监听：`POST http://127.0.0.1:17889/submit`，纯文本正文触发翻译。
-- OpenAI 兼容输入：可选开关，接受 `/v1/chat/completions` 形式请求，将用户消息推送到前端（响应固定 404）。
-- OpenAI 翻译：可配置 Base URL、Key、Model、Prompt，支持流式输出。
-- 字体与字号：自定义字体栈和大小，便于搭配 Gal 字体。
-- 手动输入：可手动输入测试翻译，支持停止流。
+- 前置窗口
+  - 窗口置顶
+  - 自动隐藏标题栏
+- 文本输入
+  - 本地HTTP请求
+  - 剪贴板监听
+- 翻译
+  - OpenAI API：可配置 Base URL、Key、Model、Prompt，支持流式输出。
+  - 基于SQLite的翻译缓存
+  - 会话内历史记录
+- 显示
+  - 自定义正文和原文的字体和大小。
 
 ## 推送示例
 
@@ -29,6 +35,7 @@ curl -X POST http://127.0.0.1:17889/v1/chat/completions \
 Ren'Py游戏原生支持语音朗读，在不同的系统上会调用不同的朗读命令。
 
 macOS在本仓库目录内用以下命令启动游戏（替换成实际的游戏路径），即可覆盖默认的朗读命令，将文本发送到Anna Translator
+
 ```bash
 PATH=$(pwd)/script/renpy:$PATH {{GAME_APP_PATH}}.app/Contents/MacOS/{{GAME_BINARY_NAME}}
 ```
@@ -58,13 +65,14 @@ bunx tauri build
 ```
 
 ## TODO
-* [ ] logo
-* [ ] 自带更新工具
-* [ ] 日语分词及注音
-  * [ ] 词典
-* [ ] OCR输入
-  * [ ] OCR区域选择窗口
-  * [ ] macOS自带OCR
-* [ ] 支持更多翻译接口
-  * [ ] Ollama
-  * [ ] 传统在线API
+
+- [ ] logo
+- [x] 自带更新工具
+- [x] 日语分词及注音
+  - [ ] 词典
+- [ ] OCR输入
+  - [ ] OCR区域选择窗口
+  - [ ] macOS自带OCR
+- [ ] 支持更多翻译接口
+  - [ ] Ollama
+  - [ ] 传统在线API
