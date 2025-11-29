@@ -28,6 +28,15 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg", "nsis"]
+    "targets": ["app", "dmg", "nsis"],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE4QjA3OTNEMDZERTc5RjIKUldUeWVkNEdQWG13cVArRm9uZHZ4cnVxa3lac0dKVUM5U1M2anNKNGdrTUs3dWF4YTYxTHJDWVoK",
+      "endpoints": [
+        "https://github.com/keocheung/AnnaTranslator/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

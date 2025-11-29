@@ -51,10 +51,18 @@ jobs:
           workspaces: src-tauri
           key: ${{ runner.os }}-cargo
 
-      - name: Build Tauri app
+      - uses: tauri-apps/tauri-action@v1
         env:
-          CI: true
-        run: bunx tauri build
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
+          releaseName: "App v__VERSION__"
+          releaseBody: "See the assets to download this version and install."
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
@@ -62,25 +70,25 @@ jobs:
           name: ${{ env.APP_NAME }}-${{ runner.os }}-${{ runner.arch }}
           path: ${{ matrix.artifact }}
 
-  publish-nightly:
-    runs-on: ubuntu-latest
-    needs: build-tauri
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ env.APP_NAME }}-*
-          path: artifacts
-          merge-multiple: true
+  # publish-nightly:
+  #   runs-on: ubuntu-latest
+  #   needs: build-tauri
+  #   steps:
+  #     - name: Download build artifacts
+  #       uses: actions/download-artifact@v6
+  #       with:
+  #         pattern: ${{ env.APP_NAME }}-*
+  #         path: artifacts
+  #         merge-multiple: true
 
-      - name: Publish Nightly prerelease
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: "artifacts/**/*.{dmg,exe}"
-          file_glob: true
-          tag: nightly
-          release_name: Nightly
-          prerelease: true
-          check_duplicates: false
-          overwrite: true
+  #     - name: Publish Nightly prerelease
+  #       uses: svenstaro/upload-release-action@v2
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: "artifacts/**/*.{dmg,exe}"
+  #         file_glob: true
+  #         tag: nightly
+  #         release_name: Nightly
+  #         prerelease: true
+  #         check_duplicates: false
+  #         overwrite: true
