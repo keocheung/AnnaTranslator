@@ -53,6 +53,7 @@ export default {
       openHistoryFailed: "Failed to open history window",
       alwaysOnTopFailed: "Failed to toggle always-on-top",
       portListenFailed: "Failed to listen on the configured port",
+      furiganaFailed: "Failed to add Japanese furigana",
     },
   },
   settings: {
@@ -78,6 +79,7 @@ export default {
       fontFamily: "Font family",
       fontSize: "Font size",
       fontFamilyPlaceholder: "Custom font stack",
+      showFurigana: "Show Japanese furigana in original panel",
     },
     input: {
       monitorClipboard: "Watch clipboard",

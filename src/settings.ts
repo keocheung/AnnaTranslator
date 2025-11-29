@@ -18,6 +18,7 @@ export type Settings = {
   openaiCompatibleInput: boolean;
   replacements: TextReplacementRule[];
   language: LanguagePreference;
+  showJapaneseFurigana: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -34,6 +35,7 @@ export const defaultSettings: Settings = {
   openaiCompatibleInput: false,
   replacements: [],
   language: "system",
+  showJapaneseFurigana: false,
 };
 
 export type TextReplacementRule = {

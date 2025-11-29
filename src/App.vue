@@ -39,6 +39,7 @@ const settings = useSettingsState();
 const { t } = useI18n();
 const originalText = ref("");
 const translatedText = ref("");
+const furiganaHtml = ref("");
 const streaming = ref(false);
 const manualInput = ref("");
 const portError = ref<string | null>(null);
@@ -61,6 +62,12 @@ const textStyle = computed(() => ({
   fontSize: `${settings.value.fontSize}px`,
   lineHeight: 1.5,
 }));
+const showFurigana = computed(
+  () => settings.value.showJapaneseFurigana && !!furiganaHtml.value
+);
+const originalPanelContent = computed(() =>
+  showFurigana.value ? furiganaHtml.value : originalText.value || t("app.status.waitingInput")
+);
 const portTagType = computed(() => (portError.value ? "error" : "info"));
 const portTagText = computed(() =>
   portError.value
@@ -100,6 +107,29 @@ watch(
     }
   },
   { immediate: true }
+);
+
+watch(
+  () => settings.value.showJapaneseFurigana,
+  (enabled) => {
+    if (enabled) {
+      void refreshFurigana(originalText.value);
+    } else {
+      furiganaHtml.value = "";
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => originalText.value,
+  (text) => {
+    if (settings.value.showJapaneseFurigana) {
+      void refreshFurigana(text);
+    } else {
+      furiganaHtml.value = "";
+    }
+  }
 );
 
 type HttpServerErrorPayload = {
@@ -300,6 +330,28 @@ async function copyOriginal() {
     message.success(t("app.messages.originalCopied"));
   } catch (error) {
     message.error(t("app.messages.copyFailed"));
+  }
+}
+
+async function refreshFurigana(text: string) {
+  if (!isTauri || !settings.value.showJapaneseFurigana) {
+    furiganaHtml.value = "";
+    return;
+  }
+
+  const content = text.trim();
+  if (!content) {
+    furiganaHtml.value = "";
+    return;
+  }
+
+  try {
+    const annotated = await invoke<string>("annotate_furigana", { text: content });
+    furiganaHtml.value = annotated;
+  } catch (error) {
+    furiganaHtml.value = "";
+    console.error("Failed to generate furigana:", error);
+    message.error(t("app.messages.furiganaFailed"));
   }
 }
 
@@ -667,7 +719,10 @@ async function refreshPortError() {
         </div>
 
         <div class="panel-content original-panel" :style="textStyle">
-          {{ originalText || t("app.status.waitingInput") }}
+          <div v-if="showFurigana" class="furigana-content" v-html="originalPanelContent"></div>
+          <template v-else>
+            {{ originalPanelContent }}
+          </template>
         </div>
         <!-- <n-input
             v-model:value="manualInput"
@@ -749,6 +804,15 @@ body {
 .original-panel {
   background: #f5f7fb;
   color: #16212b;
+}
+
+.furigana-content ruby {
+  ruby-position: over;
+}
+
+.furigana-content rt {
+  font-size: 0.75em;
+  color: #42526b;
 }
 
 .main-button {

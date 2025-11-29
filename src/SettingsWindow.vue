@@ -207,11 +207,14 @@ async function validateOpenAIConfig() {
                       class="code"
                     />
                   </n-form-item>
-                  <n-form-item :label="t('settings.appearance.fontSize')">
-                    <n-input-number v-model:value="settings.fontSize" :min="12" :max="32" />
-                  </n-form-item>
-                </n-form>
-              </div>
+                <n-form-item :label="t('settings.appearance.fontSize')">
+                  <n-input-number v-model:value="settings.fontSize" :min="12" :max="32" />
+                </n-form-item>
+                <n-form-item :label="t('settings.appearance.showFurigana')">
+                  <n-switch v-model:value="settings.showJapaneseFurigana" />
+                </n-form-item>
+              </n-form>
+            </div>
 
               <div v-else-if="activeMenu === 'input'" class="settings-pane">
                 <n-form-item :label="t('settings.input.monitorClipboard')">

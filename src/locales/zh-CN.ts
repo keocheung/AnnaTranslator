@@ -53,6 +53,7 @@ export default {
       openHistoryFailed: "历史窗口打开失败",
       alwaysOnTopFailed: "无法设置置顶窗口",
       portListenFailed: "监听端口失败，请检查端口占用或更换端口",
+      furiganaFailed: "日语注音生成失败",
     },
   },
   settings: {
@@ -78,6 +79,7 @@ export default {
       fontFamily: "字体",
       fontSize: "字号",
       fontFamilyPlaceholder: "自定义字体栈",
+      showFurigana: "显示日语注音（原文）",
     },
     input: {
       monitorClipboard: "监听剪贴板",
