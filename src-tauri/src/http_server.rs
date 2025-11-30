@@ -1,6 +1,14 @@
 use crate::text_replacements::{apply_text_replacements, emit_processed_text};
 use anyhow::{Error, Result};
-use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
+use axum::{
+    extract::State,
+    body::Body,
+    http::{header, HeaderValue, StatusCode},
+    middleware::{self, Next},
+    response::Response,
+    routing::post,
+    Json, Router,
+};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
@@ -106,11 +114,19 @@ fn extract_content_text(content: &OpenAIContent) -> Option<String> {
     }
 }
 
+async fn cors_middleware(req: axum::http::Request<Body>, next: Next) -> Response {
+    let mut res = next.run(req).await;
+    res.headers_mut()
+        .insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
+    res
+}
+
 pub async fn start_http_server(app: AppHandle, port: u16) -> Result<()> {
     let app_router = Router::new()
         .route("/submit", post(submit))
         .route("/v1/chat/completions", post(openai_chat_completions))
-        .with_state(app.clone());
+        .with_state(app.clone())
+        .layer(middleware::from_fn(cors_middleware));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     let listener = TcpListener::bind(addr).await?;
