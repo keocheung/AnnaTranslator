@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Anna Translator",
-  "version": null,
+  "version": "0.2.0",
   "identifier": "com.keo.annatranslator",
   "build": {
     "frontendDist": "../dist",
