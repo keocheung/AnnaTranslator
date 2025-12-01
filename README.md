@@ -51,20 +51,14 @@ PATH=$(pwd)/script/renpy:$PATH {{GAME_APP_PATH}}.app/Contents/MacOS/{{GAME_BINAR
 - `OpenAI 兼容输入`：默认关闭，开启后接受 `/v1/chat/completions` 形式请求，仅提取用户消息并推送到前端，响应固定 404。
 - 环境变量 `TRANSLATOR_PORT`：可覆盖监听端口（默认 17889）。
 
-## 开发
-
-Deno 1.44+ 即可直接管理 npm 依赖，首次运行会自动拉取并生成缓存。
-项目依赖统一写在 `deno.json` 的 `imports` 字段，`package.json` 仅保留脚本。
+## 从源码构建
 
 ```bash
-# 安装依赖（使用 Deno 自动管理 npm 包缓存）
-deno task dev
+# 开发调试
+deno task tauri dev
 
-# 开发调试（启动 Vite 与 Tauri 2，并开启 devtools）
-deno task tauri:dev
-
-# 构建（生产模式关闭 devtools）
-deno task tauri:build
+# 构建
+deno task tauri build
 ```
 
 ## TODO
