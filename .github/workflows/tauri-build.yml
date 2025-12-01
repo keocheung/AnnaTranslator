@@ -35,18 +35,15 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
         with:
-          bun-version: latest
+          deno-version: "^2"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
-
-      - name: Install Bun dependencies
-        run: bun install
 
       - name: Cache Rust toolchain
         uses: Swatinem/rust-cache@v2

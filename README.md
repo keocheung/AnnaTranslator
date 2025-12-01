@@ -53,15 +53,18 @@ PATH=$(pwd)/script/renpy:$PATH {{GAME_APP_PATH}}.app/Contents/MacOS/{{GAME_BINAR
 
 ## 开发
 
+Deno 1.44+ 即可直接管理 npm 依赖，首次运行会自动拉取并生成缓存。
+项目依赖统一写在 `deno.json` 的 `imports` 字段，`package.json` 仅保留脚本。
+
 ```bash
-# 安装依赖（需要本机已有 Bun）
-bun install
+# 安装依赖（使用 Deno 自动管理 npm 包缓存）
+deno task dev
 
 # 开发调试（启动 Vite 与 Tauri 2，并开启 devtools）
-bun tauri dev
+deno task tauri:dev
 
 # 构建（生产模式关闭 devtools）
-bunx tauri build
+deno task tauri:build
 ```
 
 ## TODO
