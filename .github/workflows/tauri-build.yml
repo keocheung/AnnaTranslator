@@ -41,11 +41,6 @@ jobs:
         with:
           deno-version: "^2"
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
-
       - name: Cache Rust toolchain
         uses: Swatinem/rust-cache@v2
         with:
