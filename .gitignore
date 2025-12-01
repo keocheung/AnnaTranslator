@@ -3,6 +3,7 @@ dist
 dist-ssr
 .turbo
 .idea
+.vite/
 .vscode/*
 !.vscode/settings.json
 *.log

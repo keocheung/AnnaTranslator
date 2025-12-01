@@ -1,0 +1,35 @@
+{
+  "tasks": {
+    "dev": "deno run -A --node-modules-dir npm:rolldown-vite@latest --host --port 5173",
+    "build": "deno run -A --node-modules-dir npm:rolldown-vite@latest build",
+    "preview": "deno run -A --node-modules-dir npm:rolldown-vite@latest preview",
+    "lint": "deno run -A --node-modules-dir npm:vue-tsc@^2.1.6 --noEmit",
+    "format": "deno run -A --node-modules-dir npm:prettier@^3.6.2 --write .",
+    "tauri": "deno run -A --node-modules-dir npm:@tauri-apps/cli@^2.0.0"
+  },
+  "imports": {
+    "@tauri-apps/api": "npm:@tauri-apps/api@^2.8.0",
+    "@tauri-apps/plugin-process": "npm:@tauri-apps/plugin-process@^2.3.1",
+    "@tauri-apps/plugin-store": "npm:@tauri-apps/plugin-store@^2.4.1",
+    "@tauri-apps/plugin-updater": "npm:@tauri-apps/plugin-updater@^2.9.0",
+    "@vicons/fluent": "npm:@vicons/fluent@0.13",
+    "@vicons/material": "npm:@vicons/material@0.13",
+    "@vitejs/plugin-vue": "npm:@vitejs/plugin-vue@^5.1.2",
+    "highlight.js": "npm:highlight.js@^11.11.1",
+    "naive-ui": "npm:naive-ui@^2.38.3",
+    "openai": "npm:openai@^4.77.4",
+    "prettier": "npm:prettier@^3.6.2",
+    "rolldown-vite": "npm:rolldown-vite@latest",
+    "typescript": "npm:typescript@^5.5.4",
+    "vite": "npm:rolldown-vite@latest",
+    "vue": "npm:vue@^3.5.12",
+    "vue-i18n": "npm:vue-i18n@11",
+    "vue-tsc": "npm:vue-tsc@^2.1.6"
+  },
+  "nodeModulesDir": "auto",
+  "lock": "deno.lock",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "jsx": "preserve"
+  }
+}

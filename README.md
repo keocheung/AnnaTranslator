@@ -51,17 +51,14 @@ PATH=$(pwd)/script/renpy:$PATH {{GAME_APP_PATH}}.app/Contents/MacOS/{{GAME_BINAR
 - `OpenAI 兼容输入`：默认关闭，开启后接受 `/v1/chat/completions` 形式请求，仅提取用户消息并推送到前端，响应固定 404。
 - 环境变量 `TRANSLATOR_PORT`：可覆盖监听端口（默认 17889）。
 
-## 开发
+## 从源码构建
 
 ```bash
-# 安装依赖（需要本机已有 Bun）
-bun install
+# 开发调试
+deno task tauri dev
 
-# 开发调试（启动 Vite 与 Tauri 2，并开启 devtools）
-bun tauri dev
-
-# 构建（生产模式关闭 devtools）
-bunx tauri build
+# 构建
+deno task tauri build
 ```
 
 ## TODO
